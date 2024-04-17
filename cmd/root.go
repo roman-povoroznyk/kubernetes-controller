@@ -8,7 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Version = "v0.1.0"
+var Version = "v0.2.0"
+var logLevel string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -20,6 +21,10 @@ a foundation for building custom controllers.
 This tool demonstrates modern practices for Kubernetes controller development
 using client-go and controller-runtime.`,
 	Version: Version,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Set log level before any command runs
+		logger.SetLevel(logger.LogLevel(logLevel))
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -35,5 +40,12 @@ func init() {
 	// Initialize logger
 	logger.Init()
 	
-	// Global flags can be added here
+	// Add global flags using pflag
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", 
+		"Set log level (trace, debug, info, warn, error)")
+	
+	// Add flag completion
+	rootCmd.RegisterFlagCompletionFunc("log-level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"trace", "debug", "info", "warn", "error"}, cobra.ShellCompDirectiveDefault
+	})
 }
