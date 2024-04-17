@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/roman-povoroznyk/k6s/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -31,5 +32,8 @@ func Execute() {
 }
 
 func init() {
+	// Initialize logger
+	logger.Init()
+	
 	// Global flags can be added here
 }
