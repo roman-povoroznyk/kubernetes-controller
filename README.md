@@ -34,8 +34,8 @@ k6s version
 
 ### Core Infrastructure
 - [x] **Step 1**: Golang CLI application using cobra-cli
-- [ ] **Step 2**: zerolog for log levels - info, debug, trace, warn, error
-- [ ] **Step 3**: pflag with flags for logs level
+- [x] **Step 2**: zerolog for log levels - info, debug, trace, warn, error
+- [x] **Step 3**: pflag with flags for logs level
 - [ ] **Step 3+**: Use Viper to add env vars
 - [ ] **Step 4**: fasthttp with cobra command "server" and flags for server port
 - [ ] **Step 4+**: Add http requests logging
