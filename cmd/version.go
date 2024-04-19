@@ -2,24 +2,27 @@ package cmd
 
 import (
 	"fmt"
+	"runtime"
 
-	"github.com/roman-povoroznyk/k6s/pkg/logger"
 	"github.com/spf13/cobra"
+)
+
+// Build information (set by ldflags)
+var (
+	BuildTime = "unknown"
+	GoVersion = runtime.Version()
 )
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number of k6s",
-	Long:  `Print the version number and build information for k6s.`,
+	Short: "show version information",
+	Long:  `Display version information including build details and Go version.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.Info("Displaying version information", map[string]interface{}{
-			"version": Version,
-			"command": "version",
-		})
 		fmt.Printf("k6s version %s\n", Version)
-		
-		logger.Debug("Version command completed successfully", nil)
+		fmt.Printf("go version: %s\n", GoVersion)
+		fmt.Printf("runtime: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("build time: %s\n", BuildTime)
 	},
 }
 
