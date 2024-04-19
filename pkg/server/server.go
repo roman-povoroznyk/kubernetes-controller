@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/roman-povoroznyk/k6s/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -26,8 +27,8 @@ func (s *Server) Start() error {
 		"port": s.port,
 	})
 
-	// Create request handler
-	requestHandler := func(ctx *fasthttp.RequestCtx) {
+	// Create request handler with logging middleware
+	requestHandler := s.loggingMiddleware(func(ctx *fasthttp.RequestCtx) {
 		switch string(ctx.Path()) {
 		case "/health":
 			s.handleHealth(ctx)
@@ -36,7 +37,7 @@ func (s *Server) Start() error {
 		default:
 			s.handleNotFound(ctx)
 		}
-	}
+	})
 
 	// Start server
 	addr := ":" + strconv.Itoa(s.port)
@@ -58,7 +59,7 @@ func (s *Server) handleHealth(ctx *fasthttp.RequestCtx) {
 func (s *Server) handleVersion(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetContentType("application/json")
-	fmt.Fprintf(ctx, `{"version":"v0.4.0"}`)
+	fmt.Fprintf(ctx, `{"version":"v0.4.1"}`)
 }
 
 // handleNotFound handles 404 responses
@@ -66,4 +67,25 @@ func (s *Server) handleNotFound(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
 	ctx.SetContentType("application/json")
 	fmt.Fprintf(ctx, `{"error":"not found"}`)
+}
+
+// loggingMiddleware logs HTTP requests
+func (s *Server) loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		start := time.Now()
+		
+		// Call the next handler
+		next(ctx)
+		
+		// Log the request
+		duration := time.Since(start)
+		logger.Info("HTTP request", map[string]interface{}{
+			"method":     string(ctx.Method()),
+			"path":       string(ctx.Path()),
+			"status":     ctx.Response.StatusCode(),
+			"duration":   duration.String(),
+			"user_agent": string(ctx.UserAgent()),
+			"remote_ip":  ctx.RemoteIP().String(),
+		})
+	}
 }
