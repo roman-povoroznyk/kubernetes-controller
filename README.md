@@ -47,7 +47,7 @@ K6S_SERVER_PORT=8081 k6s server
 - [x] **Step 3+**: Use Viper to add env vars
 - [x] **Step 4**: fasthttp with cobra command "server" and flags for server port
 - [x] **Step 4+**: Add http requests logging
-- [ ] **Step 5**: makefile, distroless dockerfile, github workflow and initial tests, Trivy vulnerabilities check
+- [x] **Step 5**: makefile, distroless dockerfile, github workflow and initial tests, Trivy vulnerabilities check
 
 ### Kubernetes Integration
 - [ ] **Step 6**: k8s.io/client-go to list Kubernetes deployment resources in default namespace, auth via kubeconfig, list cli command
