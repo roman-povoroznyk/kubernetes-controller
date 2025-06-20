@@ -6,6 +6,7 @@ import (
 
 	"github.com/roman-povoroznyk/k6s/pkg/logger"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var Version = "v0.2.0"
@@ -22,8 +23,12 @@ This tool demonstrates modern practices for Kubernetes controller development
 using client-go and controller-runtime.`,
 	Version: Version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Set log level before any command runs
-		logger.SetLevel(logger.LogLevel(logLevel))
+		// Get log level from viper (checks env vars, config files, and flags)
+		level := viper.GetString("log.level")
+		if level == "" {
+			level = logLevel // fallback to flag value
+		}
+		logger.SetLevel(logger.LogLevel(level))
 	},
 }
 
@@ -43,6 +48,16 @@ func init() {
 	// Add global flags using pflag
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", 
 		"Set log level (trace, debug, info, warn, error)")
+	
+	// Bind flag to viper for environment variable support
+	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
+	
+	// Set environment variable prefix
+	viper.SetEnvPrefix("K6S")
+	viper.AutomaticEnv()
+	
+	// Allow environment variables like K6S_LOG_LEVEL
+	viper.BindEnv("log.level", "K6S_LOG_LEVEL")
 	
 	// Add flag completion
 	rootCmd.RegisterFlagCompletionFunc("log-level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
