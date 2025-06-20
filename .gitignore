@@ -1,0 +1,43 @@
+# Binaries
+k8s
+k8s.exe
+bin/
+dist/
+
+# Go
+*.o
+*.a
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Dependencies
+vendor/
+
+# Test coverage
+coverage.out
+coverage.xml
+coverage.html
+
+# Temporary files
+*.tmp
+*.temp
+
+# CI/CD
+.github/workflows/*.tmp
