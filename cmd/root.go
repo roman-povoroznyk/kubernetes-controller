@@ -3,6 +3,7 @@ package cmd
 import (
     "os"
     "fmt"
+    "strings"
     "k8s.io/client-go/kubernetes"
     "k8s.io/client-go/tools/clientcmd"
     "github.com/spf13/cobra"
@@ -10,7 +11,17 @@ import (
     "github.com/rs/zerolog/log"
 )
 
-var Clientset *kubernetes.Clientset
+var (
+    Clientset  *kubernetes.Clientset
+    logLevel   string
+    logLevels  = map[string]zerolog.Level{
+        "debug": zerolog.DebugLevel,
+        "info":  zerolog.InfoLevel,
+        "warn":  zerolog.WarnLevel,
+        "error": zerolog.ErrorLevel,
+        "trace": zerolog.TraceLevel,
+    }
+)
 
 func init() {
     output := zerolog.ConsoleWriter{
@@ -20,6 +31,21 @@ func init() {
     }
     log.Logger = log.Output(output)
     zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+    rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info",
+        "Log level (trace, debug, info, warn, error)")
+}
+
+func validateLogLevel() {
+    logLevelLower := strings.ToLower(logLevel)
+    level, exists := logLevels[logLevelLower]
+    if !exists {
+        log.Warn().Str("level", logLevel).Msg("Invalid log level specified, defaulting to 'info'")
+        zerolog.SetGlobalLevel(zerolog.InfoLevel)
+    } else {
+        zerolog.SetGlobalLevel(level)
+        log.Debug().Str("level", logLevelLower).Msg("Log level set")
+    }
 }
 
 func handleError(err error, action string) {
@@ -33,6 +59,8 @@ var rootCmd = &cobra.Command{
     Use:   "controller",
     Short: "Kubernetes resource operations CLI",
     PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+        validateLogLevel()
+
         log.Info().Str("command", cmd.Name()).Strs("args", args).Msg("Command started")
         if Clientset != nil {
             return nil
