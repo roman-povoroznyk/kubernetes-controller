@@ -1,10 +1,9 @@
 package cmd
 
 import (
-    "fmt"
-    "os"
     "kubernetes-controller/internal/kubeops"
     "github.com/spf13/cobra"
+    "github.com/rs/zerolog/log"
 )
 
 var createNamespace string
@@ -19,11 +18,14 @@ var createPodCmd = &cobra.Command{
     Short: "Create a pod",
     Args:  cobra.ExactArgs(1),
     Run: func(cmd *cobra.Command, args []string) {
-        if err := kubeops.CreatePod(Clientset, createNamespace, args[0]); err != nil {
-            fmt.Println("Error creating pod:", err)
-            os.Exit(1)
+        podName := args[0]
+        log.Info().Str("namespace", createNamespace).Str("name", podName).Msg("Creating pod")
+
+        if err := kubeops.CreatePod(Clientset, createNamespace, podName); err != nil {
+            handleError(err, "Failed to create pod")
         }
-        fmt.Println("Pod created:", args[0])
+
+        log.Info().Str("name", podName).Msg("Pod created successfully")
     },
 }
 

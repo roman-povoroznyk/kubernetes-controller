@@ -1,10 +1,9 @@
 package cmd
 
 import (
-    "fmt"
-    "os"
     "kubernetes-controller/internal/kubeops"
     "github.com/spf13/cobra"
+    "github.com/rs/zerolog/log"
 )
 
 var deleteNamespace string
@@ -19,11 +18,14 @@ var deletePodCmd = &cobra.Command{
     Short: "Delete a pod",
     Args:  cobra.ExactArgs(1),
     Run: func(cmd *cobra.Command, args []string) {
-        if err := kubeops.DeletePod(Clientset, deleteNamespace, args[0]); err != nil {
-            fmt.Println("Error deleting pod:", err)
-            os.Exit(1)
+        podName := args[0]
+        log.Info().Str("namespace", deleteNamespace).Str("name", podName).Msg("Deleting pod")
+
+        if err := kubeops.DeletePod(Clientset, deleteNamespace, podName); err != nil {
+            handleError(err, "Failed to delete pod")
         }
-        fmt.Println("Pod deleted:", args[0])
+
+        log.Info().Str("name", podName).Msg("Pod deleted successfully")
     },
 }
 
