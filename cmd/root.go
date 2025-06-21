@@ -20,11 +20,12 @@ package cmd
 
 import (
 	"os"
-	
+	"strings"
 
 	"github.com/roman-povoroznyk/k8s/pkg/logger"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -69,6 +70,9 @@ func Execute() {
 }
 
 func init() {
+	// Initialize Viper for environment variables
+	initViper()
+
 	// Global persistent flags using pflag (POSIX/GNU style)
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info",
 		"Set the logging level (trace, debug, info, warn, error, fatal, panic)")
@@ -82,10 +86,45 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&allNamespaces, "all-namespaces", "A", false,
 		"If present, list resources across all namespaces")
 
+	// Bind flags to Viper for environment variable support
+	viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
+	viper.BindPFlag("kubeconfig", rootCmd.PersistentFlags().Lookup("kubeconfig"))
+	viper.BindPFlag("namespace", rootCmd.PersistentFlags().Lookup("namespace"))
+	viper.BindPFlag("all-namespaces", rootCmd.PersistentFlags().Lookup("all-namespaces"))
+
 	// Configure version output
 	rootCmd.SetVersionTemplate("k8s version {{.Version}}\n")
 	
 	// Improve error handling
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
+}
+
+// initViper initializes Viper for configuration management
+func initViper() {
+	// Set environment variable prefix
+	viper.SetEnvPrefix("K8S_CONTROLLER")
+	
+	// Enable automatic environment variable binding
+	viper.AutomaticEnv()
+	
+	// Replace hyphens with underscores in environment variables
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	
+	// Set default values
+	viper.SetDefault("log-level", "info")
+	viper.SetDefault("namespace", "default")
+	viper.SetDefault("all-namespaces", false)
+	
+	// Look for config file in common locations
+	viper.SetConfigName("k8s")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.k8s")
+	viper.AddConfigPath("/etc/k8s")
+	
+	// Read config file if it exists
+	if err := viper.ReadInConfig(); err == nil {
+		log.Info().Str("config", viper.ConfigFileUsed()).Msg("Using config file")
+	}
 }
