@@ -17,7 +17,17 @@ A Golang CLI application for managing Kubernetes deployments with informers and 
 ## Installation
 
 ```bash
+# Install via Go
 go install github.com/roman-povoroznyk/k6s@latest
+
+# Install via Helm
+helm repo add k6s https://roman-povoroznyk.github.io/kubernetes-controller
+helm install k6s k6s/k6s
+
+# Install from source
+git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
+cd kubernetes-controller
+make build
 ```
 
 ## Usage
@@ -36,6 +46,11 @@ k6s server --port 9090
 # Use environment variables
 K6S_LOG_LEVEL=debug k6s version
 K6S_SERVER_PORT=8081 k6s server
+
+# Deploy to Kubernetes with Helm
+helm install k6s ./charts/k6s
+kubectl port-forward svc/k6s 8080:8080
+curl http://localhost:8080/health
 ```
 
 ## Development Roadmap

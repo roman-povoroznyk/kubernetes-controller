@@ -68,7 +68,7 @@ func TestServerEndpoints(t *testing.T) {
 		t.Errorf("Version endpoint: expected status %d, got %d", fasthttp.StatusOK, statusCode)
 	}
 	
-	expectedVersion := `{"version":"v0.5.0"}`
+	expectedVersion := `{"version":"v0.5.1"}`
 	if string(body) != expectedVersion {
 		t.Errorf("Version endpoint: expected body %s, got %s", expectedVersion, string(body))
 	}
