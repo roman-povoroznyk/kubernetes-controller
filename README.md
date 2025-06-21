@@ -28,6 +28,14 @@ k6s --help
 
 # Show version
 k6s version
+
+# Start server
+k6s server
+k6s server --port 9090
+
+# Use environment variables
+K6S_LOG_LEVEL=debug k6s version
+K6S_SERVER_PORT=8081 k6s server
 ```
 
 ## Development Roadmap
@@ -36,8 +44,8 @@ k6s version
 - [x] **Step 1**: Golang CLI application using cobra-cli
 - [x] **Step 2**: zerolog for log levels - info, debug, trace, warn, error
 - [x] **Step 3**: pflag with flags for logs level
-- [ ] **Step 3+**: Use Viper to add env vars
-- [ ] **Step 4**: fasthttp with cobra command "server" and flags for server port
+- [x] **Step 3+**: Use Viper to add env vars
+- [x] **Step 4**: fasthttp with cobra command "server" and flags for server port
 - [ ] **Step 4+**: Add http requests logging
 - [ ] **Step 5**: makefile, distroless dockerfile, github workflow and initial tests, Trivy vulnerabilities check
 
