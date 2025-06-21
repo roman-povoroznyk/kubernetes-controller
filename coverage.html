@@ -1,0 +1,2146 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/roman-povoroznyk/k6s/cmd/create.go (0.0%)</option>
+				
+				<option value="file1">github.com/roman-povoroznyk/k6s/cmd/delete.go (0.0%)</option>
+				
+				<option value="file2">github.com/roman-povoroznyk/k6s/cmd/list.go (0.0%)</option>
+				
+				<option value="file3">github.com/roman-povoroznyk/k6s/cmd/root.go (0.0%)</option>
+				
+				<option value="file4">github.com/roman-povoroznyk/k6s/cmd/serve.go (0.0%)</option>
+				
+				<option value="file5">github.com/roman-povoroznyk/k6s/cmd/server.go (0.0%)</option>
+				
+				<option value="file6">github.com/roman-povoroznyk/k6s/cmd/watch.go (0.0%)</option>
+				
+				<option value="file7">github.com/roman-povoroznyk/k6s/examples/logging.go (0.0%)</option>
+				
+				<option value="file8">github.com/roman-povoroznyk/k6s/main.go (0.0%)</option>
+				
+				<option value="file9">github.com/roman-povoroznyk/k6s/pkg/api/deployment.go (22.4%)</option>
+				
+				<option value="file10">github.com/roman-povoroznyk/k6s/pkg/config/config.go (67.9%)</option>
+				
+				<option value="file11">github.com/roman-povoroznyk/k6s/pkg/informer/deployment.go (0.0%)</option>
+				
+				<option value="file12">github.com/roman-povoroznyk/k6s/pkg/kubernetes/client.go (28.3%)</option>
+				
+				<option value="file13">github.com/roman-povoroznyk/k6s/pkg/logger/logger.go (69.1%)</option>
+				
+				<option value="file14">github.com/roman-povoroznyk/k6s/pkg/server/server.go (26.2%)</option>
+				
+				<option value="file15">github.com/roman-povoroznyk/k6s/pkg/version/version.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package cmd
+
+import (
+        "context"
+        "fmt"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/kubernetes"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/spf13/cobra"
+        appsv1 "k8s.io/api/apps/v1"
+        corev1 "k8s.io/api/core/v1"
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/apimachinery/pkg/util/intstr"
+)
+
+var (
+        deploymentName string
+        deploymentImage string
+        deploymentReplicas int32
+        deploymentPort int32
+)
+
+// createCmd represents the create command
+var createCmd = &amp;cobra.Command{
+        Use:   "create",
+        Short: "Create Kubernetes resources",
+        Long: `Create Kubernetes resources like deployments.
+        
+Examples:
+  k6s create deployment nginx --image=nginx:latest --replicas=3 --port=80
+  k6s create deployment web --image=httpd:latest -n my-namespace`,
+}
+
+// createDeploymentCmd represents the create deployment command
+var createDeploymentCmd = &amp;cobra.Command{
+        Use:   "deployment [name]",
+        Short: "Create a deployment",
+        Long: `Create a Kubernetes deployment with the specified configuration.
+        
+Examples:
+  k6s create deployment nginx --image=nginx:latest --replicas=3 --port=80
+  k6s create deployment web --image=httpd:latest --replicas=2 -n my-namespace`,
+        Args: cobra.ExactArgs(1),
+        RunE: func(cmd *cobra.Command, args []string) error <span class="cov0" title="0">{
+                deploymentName = args[0]
+                
+                // Initialize logger
+                logger.Init()
+                
+                // Create Kubernetes client
+                client, err := kubernetes.NewClient(kubeconfig)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to create Kubernetes client", err, nil)
+                        return fmt.Errorf("failed to create Kubernetes client: %w", err)
+                }</span>
+
+                <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+                defer cancel()
+
+                if namespace == "" </span><span class="cov0" title="0">{
+                        namespace = "default"
+                }</span>
+
+                // Create deployment object
+                <span class="cov0" title="0">deployment := &amp;appsv1.Deployment{
+                        ObjectMeta: metav1.ObjectMeta{
+                                Name:      deploymentName,
+                                Namespace: namespace,
+                                Labels: map[string]string{
+                                        "app": deploymentName,
+                                },
+                        },
+                        Spec: appsv1.DeploymentSpec{
+                                Replicas: &amp;deploymentReplicas,
+                                Selector: &amp;metav1.LabelSelector{
+                                        MatchLabels: map[string]string{
+                                                "app": deploymentName,
+                                        },
+                                },
+                                Template: corev1.PodTemplateSpec{
+                                        ObjectMeta: metav1.ObjectMeta{
+                                                Labels: map[string]string{
+                                                        "app": deploymentName,
+                                                },
+                                        },
+                                        Spec: corev1.PodSpec{
+                                                Containers: []corev1.Container{
+                                                        {
+                                                                Name:  deploymentName,
+                                                                Image: deploymentImage,
+                                                        },
+                                                },
+                                        },
+                                },
+                        },
+                }
+
+                // Add port configuration if specified
+                if deploymentPort &gt; 0 </span><span class="cov0" title="0">{
+                        deployment.Spec.Template.Spec.Containers[0].Ports = []corev1.ContainerPort{
+                                {
+                                        Name:          "http",
+                                        ContainerPort: deploymentPort,
+                                        Protocol:      corev1.ProtocolTCP,
+                                },
+                        }
+                        
+                        // Add readiness probe
+                        deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &amp;corev1.Probe{
+                                ProbeHandler: corev1.ProbeHandler{
+                                        HTTPGet: &amp;corev1.HTTPGetAction{
+                                                Path: "/",
+                                                Port: intstr.FromInt32(deploymentPort),
+                                        },
+                                },
+                                InitialDelaySeconds: 5,
+                                PeriodSeconds:       10,
+                        }
+                }</span>
+
+                // Create deployment
+                <span class="cov0" title="0">result, err := client.CreateDeployment(ctx, namespace, deployment)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to create deployment", err, map[string]interface{}{
+                                "name":      deploymentName,
+                                "namespace": namespace,
+                        })
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">logger.Info("Successfully created deployment", map[string]interface{}{
+                        "name":      result.Name,
+                        "namespace": result.Namespace,
+                        "replicas":  *result.Spec.Replicas,
+                })
+
+                fmt.Printf("Deployment %s created successfully in namespace %s\n", result.Name, result.Namespace)
+                return nil</span>
+        },
+}
+
+func init() <span class="cov0" title="0">{
+        rootCmd.AddCommand(createCmd)
+        createCmd.AddCommand(createDeploymentCmd)
+
+        // Flags for create deployment command
+        createDeploymentCmd.Flags().StringVar(&amp;deploymentImage, "image", "", "Container image (required)")
+        createDeploymentCmd.Flags().Int32Var(&amp;deploymentReplicas, "replicas", 1, "Number of replicas")
+        createDeploymentCmd.Flags().Int32Var(&amp;deploymentPort, "port", 0, "Container port (optional)")
+        createDeploymentCmd.MarkFlagRequired("image")
+
+        // Inherit global flags
+        createCmd.PersistentFlags().StringVar(&amp;kubeconfig, "kubeconfig", "", "Path to kubeconfig file (optional)")
+        createCmd.PersistentFlags().StringVarP(&amp;namespace, "namespace", "n", "", "Kubernetes namespace (default: default)")
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package cmd
+
+import (
+        "context"
+        "fmt"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/kubernetes"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/spf13/cobra"
+)
+
+// deleteCmd represents the delete command
+var deleteCmd = &amp;cobra.Command{
+        Use:   "delete",
+        Short: "Delete Kubernetes resources",
+        Long: `Delete Kubernetes resources like deployments.
+        
+Examples:
+  k6s delete deployment nginx
+  k6s delete deployment web -n my-namespace`,
+}
+
+// deleteDeploymentCmd represents the delete deployment command
+var deleteDeploymentCmd = &amp;cobra.Command{
+        Use:   "deployment [name]",
+        Short: "Delete a deployment",
+        Long: `Delete a Kubernetes deployment by name.
+        
+Examples:
+  k6s delete deployment nginx
+  k6s delete deployment web -n my-namespace`,
+        Args: cobra.ExactArgs(1),
+        RunE: func(cmd *cobra.Command, args []string) error <span class="cov0" title="0">{
+                deploymentName := args[0]
+                
+                // Initialize logger
+                logger.Init()
+                
+                // Create Kubernetes client
+                client, err := kubernetes.NewClient(kubeconfig)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to create Kubernetes client", err, nil)
+                        return fmt.Errorf("failed to create Kubernetes client: %w", err)
+                }</span>
+
+                <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+                defer cancel()
+
+                if namespace == "" </span><span class="cov0" title="0">{
+                        namespace = "default"
+                }</span>
+
+                // Delete deployment
+                <span class="cov0" title="0">err = client.DeleteDeployment(ctx, namespace, deploymentName)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to delete deployment", err, map[string]interface{}{
+                                "name":      deploymentName,
+                                "namespace": namespace,
+                        })
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">fmt.Printf("Deployment %s deleted successfully from namespace %s\n", deploymentName, namespace)
+                return nil</span>
+        },
+}
+
+func init() <span class="cov0" title="0">{
+        rootCmd.AddCommand(deleteCmd)
+        deleteCmd.AddCommand(deleteDeploymentCmd)
+
+        // Inherit global flags
+        deleteCmd.PersistentFlags().StringVar(&amp;kubeconfig, "kubeconfig", "", "Path to kubeconfig file (optional)")
+        deleteCmd.PersistentFlags().StringVarP(&amp;namespace, "namespace", "n", "", "Kubernetes namespace (default: default)")
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package cmd
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+        "os"
+        "text/tabwriter"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/kubernetes"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/spf13/cobra"
+        appsv1 "k8s.io/api/apps/v1"
+)
+
+var (
+        kubeconfig    string
+        namespace     string
+        allNamespaces bool
+        outputFormat  string
+)
+
+// listCmd represents the list command
+var listCmd = &amp;cobra.Command{
+        Use:   "list",
+        Short: "List Kubernetes resources",
+        Long: `List Kubernetes resources like deployments.
+        
+Examples:
+  k6s list deployments                    # List deployments in default namespace
+  k6s list deployments -n kube-system    # List deployments in kube-system namespace
+  k6s list deployments --all-namespaces  # List deployments in all namespaces
+  k6s list deployments -o json           # Output in JSON format`,
+}
+
+// deploymentsCmd represents the deployments subcommand
+var deploymentsCmd = &amp;cobra.Command{
+        Use:   "deployments",
+        Short: "List deployments",
+        Long: `List Kubernetes deployments in the specified namespace.
+        
+By default, lists deployments in the 'default' namespace.
+Use -n/--namespace to specify a different namespace.
+Use --all-namespaces to list deployments across all namespaces.`,
+        RunE: func(cmd *cobra.Command, args []string) error <span class="cov0" title="0">{
+                // Initialize logger
+                logger.Init()
+                
+                // Create Kubernetes client
+                client, err := kubernetes.NewClient(kubeconfig)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to create Kubernetes client", err, nil)
+                        return fmt.Errorf("failed to create Kubernetes client: %w", err)
+                }</span>
+
+                <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+                defer cancel()
+
+                if allNamespaces </span><span class="cov0" title="0">{
+                        // List deployments in all namespaces
+                        deployments, err := client.ListDeploymentsAllNamespaces(ctx)
+                        if err != nil </span><span class="cov0" title="0">{
+                                logger.Error("Failed to list deployments", err, nil)
+                                return err
+                        }</span>
+
+                        <span class="cov0" title="0">if outputFormat == "json" </span><span class="cov0" title="0">{
+                                return printJSON(deployments)
+                        }</span>
+                        <span class="cov0" title="0">return printDeploymentsTable(deployments.Items, true)</span>
+                } else<span class="cov0" title="0"> {
+                        // List deployments in specific namespace
+                        if namespace == "" </span><span class="cov0" title="0">{
+                                namespace = "default"
+                        }</span>
+                        
+                        <span class="cov0" title="0">deployments, err := client.ListDeployments(ctx, namespace)
+                        if err != nil </span><span class="cov0" title="0">{
+                                logger.Error("Failed to list deployments", err, map[string]interface{}{
+                                        "namespace": namespace,
+                                })
+                                return err
+                        }</span>
+
+                        <span class="cov0" title="0">if outputFormat == "json" </span><span class="cov0" title="0">{
+                                return printJSON(deployments)
+                        }</span>
+                        <span class="cov0" title="0">return printDeploymentsTable(deployments.Items, false)</span>
+                }
+        },
+}
+
+func init() <span class="cov0" title="0">{
+        rootCmd.AddCommand(listCmd)
+        listCmd.AddCommand(deploymentsCmd)
+
+        // Flags for list command
+        listCmd.PersistentFlags().StringVar(&amp;kubeconfig, "kubeconfig", "", "Path to kubeconfig file (optional)")
+        listCmd.PersistentFlags().StringVarP(&amp;namespace, "namespace", "n", "", "Kubernetes namespace (default: default)")
+        listCmd.PersistentFlags().BoolVar(&amp;allNamespaces, "all-namespaces", false, "List resources across all namespaces")
+        listCmd.PersistentFlags().StringVarP(&amp;outputFormat, "output", "o", "table", "Output format (table, json)")
+}</span>
+
+// printDeploymentsTable prints deployments in a table format
+func printDeploymentsTable(deployments []appsv1.Deployment, showNamespace bool) error <span class="cov0" title="0">{
+        w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+        defer w.Flush()
+
+        // Print header
+        if showNamespace </span><span class="cov0" title="0">{
+                fmt.Fprintln(w, "NAMESPACE\tNAME\tREADY\tUP-TO-DATE\tAVAILABLE\tAGE")
+        }</span> else<span class="cov0" title="0"> {
+                fmt.Fprintln(w, "NAME\tREADY\tUP-TO-DATE\tAVAILABLE\tAGE")
+        }</span>
+
+        // Print deployments
+        <span class="cov0" title="0">for _, deployment := range deployments </span><span class="cov0" title="0">{
+                ready := fmt.Sprintf("%d/%d", deployment.Status.ReadyReplicas, deployment.Status.Replicas)
+                upToDate := fmt.Sprintf("%d", deployment.Status.UpdatedReplicas)
+                available := fmt.Sprintf("%d", deployment.Status.AvailableReplicas)
+                age := formatAge(deployment.CreationTimestamp.Time)
+
+                if showNamespace </span><span class="cov0" title="0">{
+                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+                                deployment.Namespace,
+                                deployment.Name,
+                                ready,
+                                upToDate,
+                                available,
+                                age,
+                        )
+                }</span> else<span class="cov0" title="0"> {
+                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+                                deployment.Name,
+                                ready,
+                                upToDate,
+                                available,
+                                age,
+                        )
+                }</span>
+        }
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+// printJSON prints the object in JSON format
+func printJSON(obj interface{}) error <span class="cov0" title="0">{
+        encoder := json.NewEncoder(os.Stdout)
+        encoder.SetIndent("", "  ")
+        return encoder.Encode(obj)
+}</span>
+
+// formatAge formats the age of a resource
+func formatAge(creationTime time.Time) string <span class="cov0" title="0">{
+        age := time.Since(creationTime)
+        
+        if age &lt; time.Minute </span><span class="cov0" title="0">{
+                return fmt.Sprintf("%ds", int(age.Seconds()))
+        }</span> else<span class="cov0" title="0"> if age &lt; time.Hour </span><span class="cov0" title="0">{
+                return fmt.Sprintf("%dm", int(age.Minutes()))
+        }</span> else<span class="cov0" title="0"> if age &lt; 24*time.Hour </span><span class="cov0" title="0">{
+                return fmt.Sprintf("%dh", int(age.Hours()))
+        }</span> else<span class="cov0" title="0"> {
+                return fmt.Sprintf("%dd", int(age.Hours()/24))
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package cmd
+
+import (
+        "fmt"
+        "os"
+
+        "github.com/roman-povoroznyk/k6s/pkg/config"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/roman-povoroznyk/k6s/pkg/version"
+        "github.com/spf13/cobra"
+)
+
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &amp;cobra.Command{
+        Use:   "k6s",
+        Short: "k6s - Kubernetes Controller CLI",
+        Long: `k6s is a CLI tool and Kubernetes controller for managing deployments.
+        
+It provides commands for listing, creating, and managing Kubernetes resources,
+as well as running a controller with informers and webhooks.`,
+        Run: func(cmd *cobra.Command, args []string) <span class="cov0" title="0">{
+                // Check if version flag is set
+                if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag </span><span class="cov0" title="0">{
+                        buildInfo := version.GetBuildInfo()
+                        fmt.Printf("k6s version: %s\n", buildInfo["version"])
+                        if buildInfo["git_commit"] != "unknown" </span><span class="cov0" title="0">{
+                                fmt.Printf("Git commit: %s\n", buildInfo["git_commit"])
+                        }</span>
+                        <span class="cov0" title="0">if buildInfo["build_date"] != "unknown" </span><span class="cov0" title="0">{
+                                fmt.Printf("Build date: %s\n", buildInfo["build_date"])
+                        }</span>
+                        <span class="cov0" title="0">return</span>
+                }
+                
+                // Load configuration
+                <span class="cov0" title="0">cfg, err := config.Load()
+                if err != nil </span><span class="cov0" title="0">{
+                        fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+                        os.Exit(1)
+                }</span>
+                
+                // Initialize logger
+                <span class="cov0" title="0">logger.Init()
+                logger.Info("Welcome to k6s - Kubernetes Controller CLI!", map[string]interface{}{
+                        "version": version.GetVersion(),
+                        "env":     cfg.App.Env,
+                })
+                fmt.Println("Welcome to k6s - Kubernetes Controller CLI!")
+                fmt.Println("Use --help for available commands.")</span>
+        },
+}
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() <span class="cov0" title="0">{
+        if err := rootCmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+                os.Exit(1)
+        }</span>
+}
+
+func init() <span class="cov0" title="0">{
+        // Version flag (local to root command)
+        rootCmd.Flags().BoolP("version", "v", false, "Show version information")
+        
+        // Global flags for configuration
+        rootCmd.PersistentFlags().String("config", "", "config file (default is ./configs/config.yaml)")
+        rootCmd.PersistentFlags().String("log-level", "info", "Set log level (trace, debug, info, warn, error)")
+        rootCmd.PersistentFlags().String("env", "development", "Environment (development, production)")
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package cmd
+
+import (
+        "context"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/informer"
+        "github.com/roman-povoroznyk/k6s/pkg/kubernetes"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/roman-povoroznyk/k6s/pkg/server"
+        "github.com/spf13/cobra"
+)
+
+var (
+        servePort        int
+        serveNamespace   string
+        serveResyncPeriod time.Duration
+)
+
+// serveCmd represents the serve command
+var serveCmd = &amp;cobra.Command{
+        Use:   "serve",
+        Short: "Start HTTP server with deployment informer",
+        Long: `Start HTTP server with deployment informer for real-time deployment monitoring and API access.
+        
+This command combines the HTTP server functionality with deployment informer,
+providing both RESTful API endpoints and real-time event monitoring.
+
+Examples:
+  k6s serve --port 8080                    # Serve on port 8080, watch all namespaces
+  k6s serve --port 8080 -n default         # Serve and watch only default namespace
+  k6s serve --port 8080 --resync 60s       # Serve with custom resync period`,
+        RunE: func(cmd *cobra.Command, args []string) error <span class="cov0" title="0">{
+                // Initialize logger
+                logger.Init()
+                
+                // Create Kubernetes client
+                client, err := kubernetes.NewClient(kubeconfig)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to create Kubernetes client", err, nil)
+                        return err
+                }</span>
+
+                // Create deployment informer
+                <span class="cov0" title="0">deploymentInformer := informer.NewDeploymentInformer(client, serveNamespace, serveResyncPeriod)
+
+                // Create server and set informer
+                srv := server.New(servePort)
+                srv.SetDeploymentInformer(deploymentInformer)
+
+                // Setup context with cancellation
+                ctx, cancel := context.WithCancel(context.Background())
+                defer cancel()
+
+                // Setup signal handling
+                sigCh := make(chan os.Signal, 1)
+                signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+                
+                // Start informer in goroutine
+                go func() </span><span class="cov0" title="0">{
+                        logger.Info("Starting deployment informer for API cache", map[string]interface{}{
+                                "namespace":      serveNamespace,
+                                "resync_period":  serveResyncPeriod.String(),
+                        })
+                        
+                        err := deploymentInformer.Start(ctx)
+                        if err != nil &amp;&amp; err != context.Canceled </span><span class="cov0" title="0">{
+                                logger.Error("Informer error", err, nil)
+                        }</span>
+                }()
+
+                // Start server in goroutine
+                <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                        logger.Info("Starting HTTP server with API endpoints", map[string]interface{}{
+                                "port": servePort,
+                        })
+                        
+                        err := srv.Start()
+                        if err != nil </span><span class="cov0" title="0">{
+                                logger.Error("Server error", err, nil)
+                        }</span>
+                }()
+
+                // Wait for signal
+                <span class="cov0" title="0">sig := &lt;-sigCh
+                logger.Info("Received signal, shutting down", map[string]interface{}{
+                        "signal": sig.String(),
+                })
+
+                // Stop informer
+                cancel()
+                deploymentInformer.Stop()
+                
+                logger.Info("Server and informer stopped", nil)
+                return nil</span>
+        },
+}
+
+func init() <span class="cov0" title="0">{
+        rootCmd.AddCommand(serveCmd)
+
+        // Flags for serve command
+        serveCmd.Flags().IntVarP(&amp;servePort, "port", "p", 8080, "Port to listen on")
+        serveCmd.Flags().StringVar(&amp;kubeconfig, "kubeconfig", "", "Path to kubeconfig file (optional)")
+        serveCmd.Flags().StringVarP(&amp;serveNamespace, "namespace", "n", "", "Kubernetes namespace to watch (empty = all namespaces)")
+        serveCmd.Flags().DurationVar(&amp;serveResyncPeriod, "resync", 30*time.Second, "Resync period for the informer")
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package cmd
+
+import (
+        "github.com/roman-povoroznyk/k6s/pkg/config"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/roman-povoroznyk/k6s/pkg/server"
+        "github.com/roman-povoroznyk/k6s/pkg/version"
+        "github.com/spf13/cobra"
+)
+
+var serverPort int
+
+// serverCmd represents the server command
+var serverCmd = &amp;cobra.Command{
+        Use:   "server",
+        Short: "Start the HTTP server",
+        Long: `Start the HTTP server for handling API requests.
+        
+The server provides REST API endpoints for managing Kubernetes resources
+and serves as the foundation for the controller functionality.`,
+        Run: func(cmd *cobra.Command, args []string) <span class="cov0" title="0">{
+                // Load configuration
+                cfg, err := config.Load()
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Fatal("Failed to load configuration", err, nil)
+                }</span>
+
+                // Initialize logger
+                <span class="cov0" title="0">logger.Init()
+
+                // Use port from flag or config
+                port := serverPort
+                if port == 0 </span><span class="cov0" title="0">{
+                        port = 8080 // default port
+                }</span>
+
+                <span class="cov0" title="0">logger.Info("Starting HTTP server", map[string]interface{}{
+                        "port":        port,
+                        "environment": cfg.App.Env,
+                        "version":     version.GetVersion(),
+                })
+
+                // Start server
+                srv := server.New(port)
+                if err := srv.Start(); err != nil </span><span class="cov0" title="0">{
+                        logger.Fatal("Server failed to start", err, map[string]interface{}{
+                                "port": port,
+                        })
+                }</span>
+        },
+}
+
+func init() <span class="cov0" title="0">{
+        rootCmd.AddCommand(serverCmd)
+        
+        // Add server-specific flags
+        serverCmd.Flags().IntVarP(&amp;serverPort, "port", "p", 8080, "Server port")
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package cmd
+
+import (
+        "context"
+        "fmt"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/informer"
+        "github.com/roman-povoroznyk/k6s/pkg/kubernetes"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/spf13/cobra"
+)
+
+var (
+        watchNamespace   string
+        resyncPeriod     time.Duration
+)
+
+// watchCmd represents the watch command
+var watchCmd = &amp;cobra.Command{
+        Use:   "watch",
+        Short: "Watch Kubernetes resources",
+        Long: `Watch Kubernetes resources and log events in real-time.
+        
+Examples:
+  k6s watch deployments                    # Watch deployments in all namespaces
+  k6s watch deployments -n kube-system    # Watch deployments in kube-system namespace
+  k6s watch deployments --resync 30s      # Watch with custom resync period`,
+}
+
+// watchDeploymentsCmd represents the watch deployments command
+var watchDeploymentsCmd = &amp;cobra.Command{
+        Use:   "deployments",
+        Short: "Watch deployment events",
+        Long: `Watch Kubernetes deployment events and log them in real-time.
+        
+The informer will watch for ADD, UPDATE, and DELETE events on deployments
+and log them with structured logging. This is useful for monitoring deployment
+changes and debugging deployment issues.
+
+Examples:
+  k6s watch deployments                    # Watch deployments in all namespaces
+  k6s watch deployments -n kube-system    # Watch deployments in kube-system namespace  
+  k6s watch deployments --resync 30s      # Watch with 30 second resync period`,
+        RunE: func(cmd *cobra.Command, args []string) error <span class="cov0" title="0">{
+                // Initialize logger
+                logger.Init()
+                
+                // Create Kubernetes client
+                client, err := kubernetes.NewClient(kubeconfig)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to create Kubernetes client", err, nil)
+                        return fmt.Errorf("failed to create Kubernetes client: %w", err)
+                }</span>
+
+                // Create deployment informer
+                <span class="cov0" title="0">deploymentInformer := informer.NewDeploymentInformer(client, watchNamespace, resyncPeriod)
+
+                // Setup context with cancellation
+                ctx, cancel := context.WithCancel(context.Background())
+                defer cancel()
+
+                // Setup signal handling
+                sigCh := make(chan os.Signal, 1)
+                signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+                
+                // Start informer in goroutine
+                errCh := make(chan error, 1)
+                go func() </span><span class="cov0" title="0">{
+                        err := deploymentInformer.Start(ctx)
+                        if err != nil &amp;&amp; err != context.Canceled </span><span class="cov0" title="0">{
+                                errCh &lt;- err
+                        }</span>
+                }()
+
+                <span class="cov0" title="0">logger.Info("Deployment informer started, watching for events...", map[string]interface{}{
+                        "namespace":      watchNamespace,
+                        "resync_period":  resyncPeriod.String(),
+                })
+
+                // Wait for signal or error
+                select </span>{
+                case sig := &lt;-sigCh:<span class="cov0" title="0">
+                        logger.Info("Received signal, shutting down", map[string]interface{}{
+                                "signal": sig.String(),
+                        })
+                        cancel()</span>
+                case err := &lt;-errCh:<span class="cov0" title="0">
+                        logger.Error("Informer error", err, nil)
+                        return err</span>
+                }
+
+                // Stop informer
+                <span class="cov0" title="0">deploymentInformer.Stop()
+                
+                logger.Info("Deployment informer stopped", nil)
+                return nil</span>
+        },
+}
+
+func init() <span class="cov0" title="0">{
+        rootCmd.AddCommand(watchCmd)
+        watchCmd.AddCommand(watchDeploymentsCmd)
+
+        // Flags for watch command
+        watchCmd.PersistentFlags().StringVar(&amp;kubeconfig, "kubeconfig", "", "Path to kubeconfig file (optional)")
+        watchCmd.PersistentFlags().StringVarP(&amp;watchNamespace, "namespace", "n", "", "Kubernetes namespace to watch (empty = all namespaces)")
+        watchCmd.PersistentFlags().DurationVar(&amp;resyncPeriod, "resync", 30*time.Second, "Resync period for the informer")
+}</span>
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package main
+
+import (
+        "errors"
+        "os"
+
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+)
+
+func main() <span class="cov0" title="0">{
+        // Initialize logger
+        logger.Init()
+
+        // Demo different log levels
+        logger.Trace("Starting application", map[string]interface{}{
+                "component": "main", 
+        })
+
+        logger.Debug("Configuration loaded", map[string]interface{}{
+                "env": os.Getenv("ENV"),
+                "config_source": "environment",
+        })
+
+        logger.Info("Application started", map[string]interface{}{
+                "version": "0.1.0",
+                "port":    8080,
+        })
+
+        logger.Warn("High resource usage", map[string]interface{}{
+                "cpu_usage":    85.5,
+                "memory_usage": 78.2,
+        })
+
+        // Simulate an error
+        err := errors.New("connection timeout")
+        logger.Error("Database connection failed", err, map[string]interface{}{
+                "database": "postgres",
+                "retry":    3,
+        })
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package main
+
+import (
+        "github.com/roman-povoroznyk/k6s/cmd"
+)
+
+func main() <span class="cov0" title="0">{
+        cmd.Execute()
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package api
+
+import (
+        "encoding/json"
+        "net/http"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/informer"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        appsv1 "k8s.io/api/apps/v1"
+)
+
+// DeploymentAPI provides HTTP API handlers for deployment operations
+type DeploymentAPI struct {
+        Informer *informer.DeploymentInformer
+}
+
+// NewDeploymentAPI creates a new deployment API handler
+func NewDeploymentAPI(informer *informer.DeploymentInformer) *DeploymentAPI <span class="cov0" title="0">{
+        return &amp;DeploymentAPI{
+                Informer: informer,
+        }
+}</span>
+
+// DeploymentResponse represents the API response for deployment data
+type DeploymentResponse struct {
+        Name              string            `json:"name"`
+        Namespace         string            `json:"namespace"`
+        Labels            map[string]string `json:"labels,omitempty"`
+        Annotations       map[string]string `json:"annotations,omitempty"`
+        Replicas          int32             `json:"replicas"`
+        ReadyReplicas     int32             `json:"ready_replicas"`
+        UpdatedReplicas   int32             `json:"updated_replicas"`
+        AvailableReplicas int32             `json:"available_replicas"`
+        Image             string            `json:"image"`
+        CreationTimestamp time.Time         `json:"creation_timestamp"`
+        Status            string            `json:"status"`
+}
+
+// DeploymentListResponse represents the API response for deployment list
+type DeploymentListResponse struct {
+        Items []DeploymentResponse `json:"items"`
+        Total int                  `json:"total"`
+}
+
+// ErrorResponse represents an API error response
+type ErrorResponse struct {
+        Error   string `json:"error"`
+        Message string `json:"message"`
+        Code    int    `json:"code"`
+}
+
+// ListDeployments handles GET /api/v1/deployments
+func (da *DeploymentAPI) ListDeployments(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        // Set content type
+        w.Header().Set("Content-Type", "application/json")
+
+        // Check if informer is available
+        if da.Informer == nil </span><span class="cov8" title="1">{
+                da.writeError(w, http.StatusServiceUnavailable, "Informer not available", "Informer not configured")
+                return
+        }</span>
+
+        // Check if informer cache is synced
+        <span class="cov0" title="0">if !da.Informer.HasSynced() </span><span class="cov0" title="0">{
+                da.writeError(w, http.StatusServiceUnavailable, "Informer cache not synced", "Cache is still synchronizing")
+                return
+        }</span>
+
+        // Get deployments from cache
+        <span class="cov0" title="0">deployments, err := da.Informer.ListDeployments()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to list deployments from cache", err, nil)
+                da.writeError(w, http.StatusInternalServerError, "Failed to list deployments", err.Error())
+                return
+        }</span>
+
+        // Convert to API response format
+        <span class="cov0" title="0">response := DeploymentListResponse{
+                Items: make([]DeploymentResponse, 0, len(deployments)),
+                Total: len(deployments),
+        }
+
+        for _, deployment := range deployments </span><span class="cov0" title="0">{
+                item := da.ConvertDeploymentToResponse(deployment)
+                response.Items = append(response.Items, item)
+        }</span>
+
+        // Write response
+        <span class="cov0" title="0">w.WriteHeader(http.StatusOK)
+        if err := json.NewEncoder(w).Encode(response); err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to encode response", err, nil)
+        }</span>
+
+        <span class="cov0" title="0">logger.Debug("Listed deployments from cache", map[string]interface{}{
+                "count": len(deployments),
+        })</span>
+}
+
+// GetDeployment handles GET /api/v1/deployments/{namespace}/{name}
+func (da *DeploymentAPI) GetDeployment(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        // Set content type
+        w.Header().Set("Content-Type", "application/json")
+
+        // Extract namespace and name from URL path
+        // This is a simple implementation - in production you'd use a router like gorilla/mux
+        namespace := r.URL.Query().Get("namespace")
+        name := r.URL.Query().Get("name")
+
+        if name == "" </span><span class="cov0" title="0">{
+                da.writeError(w, http.StatusBadRequest, "Missing deployment name", "name parameter is required")
+                return
+        }</span>
+
+        <span class="cov0" title="0">if namespace == "" </span><span class="cov0" title="0">{
+                namespace = "default"
+        }</span>
+
+        // Check if informer cache is synced
+        <span class="cov0" title="0">if !da.Informer.HasSynced() </span><span class="cov0" title="0">{
+                da.writeError(w, http.StatusServiceUnavailable, "Informer cache not synced", "Cache is still synchronizing")
+                return
+        }</span>
+
+        // Get deployment from cache
+        <span class="cov0" title="0">deployment, err := da.Informer.GetDeployment(namespace, name)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to get deployment from cache", err, map[string]interface{}{
+                        "namespace": namespace,
+                        "name":      name,
+                })
+                da.writeError(w, http.StatusNotFound, "Deployment not found", err.Error())
+                return
+        }</span>
+
+        // Convert to API response format
+        <span class="cov0" title="0">response := da.ConvertDeploymentToResponse(deployment)
+
+        // Write response
+        w.WriteHeader(http.StatusOK)
+        if err := json.NewEncoder(w).Encode(response); err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to encode response", err, nil)
+        }</span>
+
+        <span class="cov0" title="0">logger.Debug("Got deployment from cache", map[string]interface{}{
+                "namespace": namespace,
+                "name":      name,
+        })</span>
+}
+
+// HealthCheck handles GET /api/v1/health
+func (da *DeploymentAPI) HealthCheck(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        w.Header().Set("Content-Type", "application/json")
+
+        health := map[string]interface{}{
+                "status":      "ok",
+                "cache_synced": da.Informer.HasSynced(),
+                "timestamp":   time.Now(),
+        }
+
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(health)
+}</span>
+
+// ConvertDeploymentToResponse converts a Kubernetes deployment to API response format
+func (da *DeploymentAPI) ConvertDeploymentToResponse(deployment *appsv1.Deployment) DeploymentResponse <span class="cov8" title="1">{
+        status := "Unknown"
+        if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas </span><span class="cov8" title="1">{
+                status = "Ready"
+        }</span> else<span class="cov0" title="0"> if deployment.Status.ReadyReplicas &gt; 0 </span><span class="cov0" title="0">{
+                status = "Progressing"
+        }</span> else<span class="cov0" title="0"> {
+                status = "NotReady"
+        }</span>
+
+        <span class="cov8" title="1">image := ""
+        if len(deployment.Spec.Template.Spec.Containers) &gt; 0 </span><span class="cov8" title="1">{
+                image = deployment.Spec.Template.Spec.Containers[0].Image
+        }</span>
+
+        <span class="cov8" title="1">return DeploymentResponse{
+                Name:              deployment.Name,
+                Namespace:         deployment.Namespace,
+                Labels:            deployment.Labels,
+                Annotations:       deployment.Annotations,
+                Replicas:          *deployment.Spec.Replicas,
+                ReadyReplicas:     deployment.Status.ReadyReplicas,
+                UpdatedReplicas:   deployment.Status.UpdatedReplicas,
+                AvailableReplicas: deployment.Status.AvailableReplicas,
+                Image:             image,
+                CreationTimestamp: deployment.CreationTimestamp.Time,
+                Status:            status,
+        }</span>
+}
+
+// writeError writes an error response
+func (da *DeploymentAPI) writeError(w http.ResponseWriter, code int, error string, message string) <span class="cov8" title="1">{
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(ErrorResponse{
+                Error:   error,
+                Message: message,
+                Code:    code,
+        })
+}</span>
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package config
+
+import (
+        "strings"
+
+        "github.com/spf13/viper"
+)
+
+// Config holds application configuration
+type Config struct {
+        App        AppConfig        `mapstructure:"app"`
+        Log        LogConfig        `mapstructure:"log"`
+        Kubernetes KubernetesConfig `mapstructure:"kubernetes"`
+        Informer   InformerConfig   `mapstructure:"informer"`
+}
+
+// AppConfig holds application-specific configuration
+type AppConfig struct {
+        Name string `mapstructure:"name"`
+        Env  string `mapstructure:"env"`
+}
+
+// LogConfig holds logging configuration
+type LogConfig struct {
+        Level string `mapstructure:"level"`
+}
+
+// KubernetesConfig holds Kubernetes-specific configuration
+type KubernetesConfig struct {
+        Kubeconfig string `mapstructure:"kubeconfig"`
+        Namespace  string `mapstructure:"namespace"`
+}
+
+// InformerConfig holds informer-specific configuration
+type InformerConfig struct {
+        ResyncPeriod string `mapstructure:"resync_period"`
+        Namespace    string `mapstructure:"namespace"`
+}
+
+// Global config instance
+var globalConfig *Config
+
+// Load loads configuration from environment variables and config files
+func Load() (*Config, error) <span class="cov10" title="2">{
+        viper.SetConfigName("config")
+        viper.SetConfigType("yaml")
+        viper.AddConfigPath(".")
+        viper.AddConfigPath("./configs")
+
+        // Set default values
+        setDefaults()
+
+        // Enable reading from environment variables
+        viper.SetEnvPrefix("K6S")
+        viper.AutomaticEnv()
+        viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+        // Try to read config file (optional)
+        if err := viper.ReadInConfig(); err != nil </span><span class="cov10" title="2">{
+                if _, ok := err.(viper.ConfigFileNotFoundError); !ok </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov10" title="2">var cfg Config
+        if err := viper.Unmarshal(&amp;cfg); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov10" title="2">globalConfig = &amp;cfg
+        return &amp;cfg, nil</span>
+}
+
+// setDefaults sets default configuration values
+func setDefaults() <span class="cov10" title="2">{
+        // App defaults
+        viper.SetDefault("app.name", "k6s")
+        viper.SetDefault("app.env", "development")
+
+        // Log defaults
+        viper.SetDefault("log.level", "info")
+}</span>
+
+// Get returns the global configuration
+func Get() *Config <span class="cov1" title="1">{
+        if globalConfig == nil </span><span class="cov0" title="0">{
+                cfg, err := Load()
+                if err != nil </span><span class="cov0" title="0">{
+                        panic("Failed to load configuration: " + err.Error())</span>
+                }
+                <span class="cov0" title="0">return cfg</span>
+        }
+        <span class="cov1" title="1">return globalConfig</span>
+}
+
+// GetString returns a string configuration value
+func GetString(key string) string <span class="cov0" title="0">{
+        return viper.GetString(key)
+}</span>
+
+// GetInt returns an integer configuration value
+func GetInt(key string) int <span class="cov0" title="0">{
+        return viper.GetInt(key)
+}</span>
+
+// GetBool returns a boolean configuration value
+func GetBool(key string) bool <span class="cov0" title="0">{
+        return viper.GetBool(key)
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package informer
+
+import (
+        "context"
+        "fmt"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/kubernetes"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        appsv1 "k8s.io/api/apps/v1"
+        "k8s.io/client-go/informers"
+        "k8s.io/client-go/tools/cache"
+)
+
+// DeploymentInformer wraps Kubernetes deployment informer
+type DeploymentInformer struct {
+        client        *kubernetes.Client
+        factory       informers.SharedInformerFactory
+        informer      cache.SharedIndexInformer
+        stopCh        chan struct{}
+        namespace     string
+        resyncPeriod  time.Duration
+}
+
+// NewDeploymentInformer creates a new deployment informer
+func NewDeploymentInformer(client *kubernetes.Client, namespace string, resyncPeriod time.Duration) *DeploymentInformer <span class="cov0" title="0">{
+        // Create informer factory
+        var factory informers.SharedInformerFactory
+        if namespace == "" </span><span class="cov0" title="0">{
+                // Watch all namespaces
+                factory = informers.NewSharedInformerFactory(client.GetClientset(), resyncPeriod)
+        }</span> else<span class="cov0" title="0"> {
+                // Watch specific namespace
+                factory = informers.NewSharedInformerFactoryWithOptions(
+                        client.GetClientset(),
+                        resyncPeriod,
+                        informers.WithNamespace(namespace),
+                )
+        }</span>
+
+        // Get deployment informer
+        <span class="cov0" title="0">deploymentInformer := factory.Apps().V1().Deployments().Informer()
+
+        return &amp;DeploymentInformer{
+                client:       client,
+                factory:      factory,
+                informer:     deploymentInformer,
+                stopCh:       make(chan struct{}),
+                namespace:    namespace,
+                resyncPeriod: resyncPeriod,
+        }</span>
+}
+
+// Start starts the informer and begins watching for deployment events
+func (di *DeploymentInformer) Start(ctx context.Context) error <span class="cov0" title="0">{
+        // Add event handlers
+        _, err := di.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+                AddFunc: func(obj interface{}) </span><span class="cov0" title="0">{
+                        deployment := obj.(*appsv1.Deployment)
+                        logger.Info("Deployment added", map[string]interface{}{
+                                "name":      deployment.Name,
+                                "namespace": deployment.Namespace,
+                                "replicas":  *deployment.Spec.Replicas,
+                                "image":     deployment.Spec.Template.Spec.Containers[0].Image,
+                                "event":     "ADD",
+                        })
+                }</span>,
+                UpdateFunc: func(oldObj, newObj interface{}) <span class="cov0" title="0">{
+                        oldDeployment := oldObj.(*appsv1.Deployment)
+                        newDeployment := newObj.(*appsv1.Deployment)
+                        
+                        // Only log if something meaningful changed
+                        if oldDeployment.ResourceVersion != newDeployment.ResourceVersion </span><span class="cov0" title="0">{
+                                logger.Info("Deployment updated", map[string]interface{}{
+                                        "name":            newDeployment.Name,
+                                        "namespace":       newDeployment.Namespace,
+                                        "replicas":        *newDeployment.Spec.Replicas,
+                                        "ready_replicas":  newDeployment.Status.ReadyReplicas,
+                                        "old_resource_version": oldDeployment.ResourceVersion,
+                                        "new_resource_version": newDeployment.ResourceVersion,
+                                        "event":           "UPDATE",
+                                })
+                        }</span>
+                },
+                DeleteFunc: func(obj interface{}) <span class="cov0" title="0">{
+                        deployment := obj.(*appsv1.Deployment)
+                        logger.Info("Deployment deleted", map[string]interface{}{
+                                "name":      deployment.Name,
+                                "namespace": deployment.Namespace,
+                                "event":     "DELETE",
+                        })
+                }</span>,
+        })
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to add event handler: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Starting deployment informer", map[string]interface{}{
+                "namespace":      di.namespace,
+                "resync_period":  di.resyncPeriod.String(),
+        })
+
+        // Start the informer
+        di.factory.Start(di.stopCh)
+
+        // Wait for cache to sync
+        if !cache.WaitForCacheSync(ctx.Done(), di.informer.HasSynced) </span><span class="cov0" title="0">{
+                return fmt.Errorf("timed out waiting for caches to sync")
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Deployment informer cache synced successfully", map[string]interface{}{
+                "namespace": di.namespace,
+        })
+
+        // Keep the informer running
+        &lt;-ctx.Done()
+        return ctx.Err()</span>
+}
+
+// Stop stops the informer
+func (di *DeploymentInformer) Stop() <span class="cov0" title="0">{
+        logger.Info("Stopping deployment informer", map[string]interface{}{
+                "namespace": di.namespace,
+        })
+        close(di.stopCh)
+}</span>
+
+// GetDeployment gets a deployment from the informer's cache
+func (di *DeploymentInformer) GetDeployment(namespace, name string) (*appsv1.Deployment, error) <span class="cov0" title="0">{
+        key := name
+        if namespace != "" &amp;&amp; di.namespace == "" </span><span class="cov0" title="0">{
+                // Multi-namespace informer needs namespace/name key
+                key = namespace + "/" + name
+        }</span>
+
+        <span class="cov0" title="0">obj, exists, err := di.informer.GetIndexer().GetByKey(key)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to get deployment from cache: %w", err)
+        }</span>
+        <span class="cov0" title="0">if !exists </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("deployment %s not found in cache", key)
+        }</span>
+
+        <span class="cov0" title="0">deployment, ok := obj.(*appsv1.Deployment)
+        if !ok </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("object is not a deployment")
+        }</span>
+
+        <span class="cov0" title="0">return deployment, nil</span>
+}
+
+// ListDeployments lists all deployments from the informer's cache
+func (di *DeploymentInformer) ListDeployments() ([]*appsv1.Deployment, error) <span class="cov0" title="0">{
+        objs := di.informer.GetIndexer().List()
+        deployments := make([]*appsv1.Deployment, 0, len(objs))
+
+        for _, obj := range objs </span><span class="cov0" title="0">{
+                deployment, ok := obj.(*appsv1.Deployment)
+                if !ok </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov0" title="0">deployments = append(deployments, deployment)</span>
+        }
+
+        <span class="cov0" title="0">return deployments, nil</span>
+}
+
+// HasSynced returns true if the informer's cache has synced
+func (di *DeploymentInformer) HasSynced() bool <span class="cov0" title="0">{
+        return di.informer.HasSynced()
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package kubernetes
+
+import (
+        "context"
+        "fmt"
+        "os"
+        "path/filepath"
+
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        appsv1 "k8s.io/api/apps/v1"
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/client-go/kubernetes"
+        "k8s.io/client-go/rest"
+        "k8s.io/client-go/tools/clientcmd"
+)
+
+// Client wraps Kubernetes client with additional functionality
+type Client struct {
+        clientset *kubernetes.Clientset
+        config    *rest.Config
+}
+
+// NewClient creates a new Kubernetes client
+// It tries in-cluster config first, then falls back to kubeconfig
+func NewClient(kubeconfig string) (*Client, error) <span class="cov10" title="2">{
+        var config *rest.Config
+        var err error
+
+        // If kubeconfig path is provided, use it
+        if kubeconfig != "" </span><span class="cov1" title="1">{
+                config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, fmt.Errorf("failed to build config from kubeconfig %s: %w", kubeconfig, err)
+                }</span>
+        } else<span class="cov1" title="1"> {
+                // Try in-cluster config first
+                config, err = rest.InClusterConfig()
+                if err != nil </span><span class="cov1" title="1">{
+                        // Fall back to default kubeconfig location
+                        home, err := os.UserHomeDir()
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("failed to get user home directory: %w", err)
+                        }</span>
+                        
+                        <span class="cov1" title="1">defaultKubeconfig := filepath.Join(home, ".kube", "config")
+                        if _, err := os.Stat(defaultKubeconfig); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("no kubeconfig found and not running in cluster")
+                        }</span>
+                        
+                        <span class="cov1" title="1">config, err = clientcmd.BuildConfigFromFlags("", defaultKubeconfig)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("failed to build config from default kubeconfig: %w", err)
+                        }</span>
+                }
+        }
+
+        // Create clientset
+        <span class="cov1" title="1">clientset, err := kubernetes.NewForConfig(config)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return &amp;Client{
+                clientset: clientset,
+                config:    config,
+        }, nil</span>
+}
+
+// ListDeployments lists all deployments in the specified namespace
+func (c *Client) ListDeployments(ctx context.Context, namespace string) (*appsv1.DeploymentList, error) <span class="cov0" title="0">{
+        if namespace == "" </span><span class="cov0" title="0">{
+                namespace = "default"
+        }</span>
+
+        <span class="cov0" title="0">logger.Debug("Listing deployments", map[string]interface{}{
+                "namespace": namespace,
+        })
+
+        deployments, err := c.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to list deployments in namespace %s: %w", namespace, err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Successfully listed deployments", map[string]interface{}{
+                "namespace": namespace,
+                "count":     len(deployments.Items),
+        })
+
+        return deployments, nil</span>
+}
+
+// ListDeploymentsAllNamespaces lists all deployments across all namespaces
+func (c *Client) ListDeploymentsAllNamespaces(ctx context.Context) (*appsv1.DeploymentList, error) <span class="cov0" title="0">{
+        logger.Debug("Listing deployments in all namespaces", nil)
+
+        deployments, err := c.clientset.AppsV1().Deployments("").List(ctx, metav1.ListOptions{})
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to list deployments in all namespaces: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Successfully listed deployments from all namespaces", map[string]interface{}{
+                "count": len(deployments.Items),
+        })
+
+        return deployments, nil</span>
+}
+
+// GetDeployment gets a specific deployment by name and namespace
+func (c *Client) GetDeployment(ctx context.Context, namespace, name string) (*appsv1.Deployment, error) <span class="cov0" title="0">{
+        if namespace == "" </span><span class="cov0" title="0">{
+                namespace = "default"
+        }</span>
+
+        <span class="cov0" title="0">logger.Debug("Getting deployment", map[string]interface{}{
+                "namespace": namespace,
+                "name":      name,
+        })
+
+        deployment, err := c.clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to get deployment %s in namespace %s: %w", name, namespace, err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Successfully got deployment", map[string]interface{}{
+                "namespace": namespace,
+                "name":      name,
+        })
+
+        return deployment, nil</span>
+}
+
+// CreateDeployment creates a new deployment in the specified namespace
+func (c *Client) CreateDeployment(ctx context.Context, namespace string, deployment *appsv1.Deployment) (*appsv1.Deployment, error) <span class="cov0" title="0">{
+        if namespace == "" </span><span class="cov0" title="0">{
+                namespace = "default"
+        }</span>
+
+        <span class="cov0" title="0">logger.Debug("Creating deployment", map[string]interface{}{
+                "name":      deployment.Name,
+                "namespace": namespace,
+                "image":     deployment.Spec.Template.Spec.Containers[0].Image,
+                "replicas":  *deployment.Spec.Replicas,
+        })
+
+        result, err := c.clientset.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create deployment %s in namespace %s: %w", deployment.Name, namespace, err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Successfully created deployment", map[string]interface{}{
+                "name":      result.Name,
+                "namespace": result.Namespace,
+                "replicas":  *result.Spec.Replicas,
+        })
+
+        return result, nil</span>
+}
+
+// GetClientset returns the underlying Kubernetes clientset
+func (c *Client) GetClientset() *kubernetes.Clientset <span class="cov0" title="0">{
+        return c.clientset
+}</span>
+
+// DeleteDeployment deletes a deployment in the specified namespace
+func (c *Client) DeleteDeployment(ctx context.Context, namespace, name string) error <span class="cov0" title="0">{
+        if namespace == "" </span><span class="cov0" title="0">{
+                namespace = "default"
+        }</span>
+
+        <span class="cov0" title="0">logger.Debug("Deleting deployment", map[string]interface{}{
+                "name":      name,
+                "namespace": namespace,
+        })
+
+        err := c.clientset.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to delete deployment %s in namespace %s: %w", name, namespace, err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Successfully deleted deployment", map[string]interface{}{
+                "name":      name,
+                "namespace": namespace,
+        })
+
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package logger
+
+import (
+        "os"
+        "strings"
+
+        "github.com/roman-povoroznyk/k6s/pkg/config"
+        "github.com/roman-povoroznyk/k6s/pkg/version"
+        "github.com/rs/zerolog"
+        "github.com/rs/zerolog/log"
+)
+
+// Logger wraps zerolog with additional context
+type Logger struct {
+        logger zerolog.Logger
+}
+
+// New creates a new logger instance
+func New() *Logger <span class="cov7" title="6">{
+        // Load configuration
+        cfg, _ := config.Load()
+        
+        // Get environment from config
+        env := strings.ToLower(cfg.App.Env)
+        if env == "" </span><span class="cov0" title="0">{
+                env = "development"
+        }</span>
+
+        // Get log level from config
+        <span class="cov7" title="6">level := strings.ToLower(cfg.Log.Level)
+        var zeroLevel zerolog.Level
+        switch level </span>{
+        case "trace":<span class="cov0" title="0">
+                zeroLevel = zerolog.TraceLevel</span>
+        case "debug":<span class="cov0" title="0">
+                zeroLevel = zerolog.DebugLevel</span>
+        case "info":<span class="cov7" title="6">
+                zeroLevel = zerolog.InfoLevel</span>
+        case "warn", "warning":<span class="cov0" title="0">
+                zeroLevel = zerolog.WarnLevel</span>
+        case "error":<span class="cov0" title="0">
+                zeroLevel = zerolog.ErrorLevel</span>
+        case "fatal":<span class="cov0" title="0">
+                zeroLevel = zerolog.FatalLevel</span>
+        default:<span class="cov0" title="0">
+                zeroLevel = zerolog.InfoLevel</span>
+        }
+
+        <span class="cov7" title="6">var logger zerolog.Logger
+
+        if env == "prod" || env == "production" </span><span class="cov1" title="1">{
+                // Production: JSON format
+                zerolog.SetGlobalLevel(zeroLevel)
+                logger = zerolog.New(os.Stdout).With().
+                        Timestamp().
+                        Str("service", cfg.App.Name).
+                        Str("environment", env).
+                        Str("version", version.GetVersion()).
+                        Logger()
+        }</span> else<span class="cov6" title="5"> {
+                // Development: Pretty format
+                zerolog.SetGlobalLevel(zeroLevel)
+                output := zerolog.ConsoleWriter{
+                        Out:        os.Stdout,
+                        TimeFormat: "15:04:05",
+                        NoColor:    false,
+                }
+                logger = zerolog.New(output).With().
+                        Timestamp().
+                        Str("service", cfg.App.Name).
+                        Str("environment", env).
+                        Str("version", version.GetVersion()).
+                        Logger()
+        }</span>
+
+        <span class="cov7" title="6">return &amp;Logger{logger: logger}</span>
+}
+
+// Debug logs a debug message
+func (l *Logger) Debug(msg string, fields map[string]interface{}) <span class="cov3" title="2">{
+        event := l.logger.Debug()
+        l.addFields(event, fields)
+        event.Msg(msg)
+}</span>
+
+// Info logs an info message
+func (l *Logger) Info(msg string, fields map[string]interface{}) <span class="cov3" title="2">{
+        event := l.logger.Info()
+        l.addFields(event, fields)
+        event.Msg(msg)
+}</span>
+
+// Warn logs a warning message
+func (l *Logger) Warn(msg string, fields map[string]interface{}) <span class="cov3" title="2">{
+        event := l.logger.Warn()
+        l.addFields(event, fields)
+        event.Msg(msg)
+}</span>
+
+// Error logs an error message
+func (l *Logger) Error(msg string, err error, fields map[string]interface{}) <span class="cov3" title="2">{
+        event := l.logger.Error()
+        if err != nil </span><span class="cov0" title="0">{
+                event = event.Err(err)
+        }</span>
+        <span class="cov3" title="2">l.addFields(event, fields)
+        event.Msg(msg)</span>
+}
+
+// Fatal logs a fatal message and exits
+func (l *Logger) Fatal(msg string, err error, fields map[string]interface{}) <span class="cov0" title="0">{
+        event := l.logger.Fatal()
+        if err != nil </span><span class="cov0" title="0">{
+                event = event.Err(err)
+        }</span>
+        <span class="cov0" title="0">l.addFields(event, fields)
+        event.Msg(msg)</span>
+}
+
+// Trace logs a trace message
+func (l *Logger) Trace(msg string, fields map[string]interface{}) <span class="cov1" title="1">{
+        event := l.logger.Trace()
+        l.addFields(event, fields)
+        event.Msg(msg)
+}</span>
+
+// addFields adds custom fields to the log event
+func (l *Logger) addFields(event *zerolog.Event, fields map[string]interface{}) <span class="cov8" title="9">{
+        if fields == nil </span><span class="cov6" title="5">{
+                return
+        }</span>
+        <span class="cov6" title="4">for key, value := range fields </span><span class="cov10" title="12">{
+                event.Interface(key, value)
+        }</span>
+}
+
+// Global logger instance
+var globalLogger *Logger
+
+// Init initializes the global logger
+func Init() <span class="cov4" title="3">{
+        globalLogger = New()
+        log.Logger = globalLogger.logger
+}</span>
+
+// Debug logs using global logger
+func Debug(msg string, fields map[string]interface{}) <span class="cov3" title="2">{
+        if globalLogger == nil </span><span class="cov0" title="0">{
+                Init()
+        }</span>
+        <span class="cov3" title="2">globalLogger.Debug(msg, fields)</span>
+}
+
+// Info logs using global logger
+func Info(msg string, fields map[string]interface{}) <span class="cov3" title="2">{
+        if globalLogger == nil </span><span class="cov0" title="0">{
+                Init()
+        }</span>
+        <span class="cov3" title="2">globalLogger.Info(msg, fields)</span>
+}
+
+// Warn logs using global logger
+func Warn(msg string, fields map[string]interface{}) <span class="cov3" title="2">{
+        if globalLogger == nil </span><span class="cov0" title="0">{
+                Init()
+        }</span>
+        <span class="cov3" title="2">globalLogger.Warn(msg, fields)</span>
+}
+
+// Error logs using global logger
+func Error(msg string, err error, fields map[string]interface{}) <span class="cov3" title="2">{
+        if globalLogger == nil </span><span class="cov0" title="0">{
+                Init()
+        }</span>
+        <span class="cov3" title="2">globalLogger.Error(msg, err, fields)</span>
+}
+
+// Fatal logs using global logger
+func Fatal(msg string, err error, fields map[string]interface{}) <span class="cov0" title="0">{
+        if globalLogger == nil </span><span class="cov0" title="0">{
+                Init()
+        }</span>
+        <span class="cov0" title="0">globalLogger.Fatal(msg, err, fields)</span>
+}
+
+// Trace logs using global logger
+func Trace(msg string, fields map[string]interface{}) <span class="cov1" title="1">{
+        if globalLogger == nil </span><span class="cov0" title="0">{
+                Init()
+        }</span>
+        <span class="cov1" title="1">globalLogger.Trace(msg, fields)</span>
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package server
+
+import (
+        "encoding/json"
+        "strconv"
+        "time"
+
+        "github.com/roman-povoroznyk/k6s/pkg/api"
+        "github.com/roman-povoroznyk/k6s/pkg/informer"
+        "github.com/roman-povoroznyk/k6s/pkg/logger"
+        "github.com/roman-povoroznyk/k6s/pkg/version"
+        "github.com/valyala/fasthttp"
+)
+
+// Server wraps fasthttp server
+type Server struct {
+        port           int
+        deploymentAPI  *api.DeploymentAPI
+}
+
+// New creates a new server instance
+func New(port int) *Server <span class="cov10" title="5">{
+        return &amp;Server{
+                port: port,
+        }
+}</span>
+
+// SetDeploymentInformer sets the deployment informer for API endpoints
+func (s *Server) SetDeploymentInformer(deploymentInformer *informer.DeploymentInformer) <span class="cov0" title="0">{
+        s.deploymentAPI = api.NewDeploymentAPI(deploymentInformer)
+}</span>
+
+// Start starts the HTTP server
+func (s *Server) Start() error <span class="cov0" title="0">{
+        handler := s.createHandler()
+        
+        address := ":" + strconv.Itoa(s.port)
+        logger.Info("Server starting", map[string]interface{}{
+                "address": address,
+        })
+        
+        return fasthttp.ListenAndServe(address, handler)
+}</span>
+
+// createHandler creates the main request handler
+func (s *Server) createHandler() fasthttp.RequestHandler <span class="cov1" title="1">{
+        return s.loggingMiddleware(func(ctx *fasthttp.RequestCtx) </span><span class="cov1" title="1">{
+                path := string(ctx.Path())
+                method := string(ctx.Method())
+                
+                switch </span>{
+                case path == "/":<span class="cov1" title="1">
+                        s.handleRoot(ctx)</span>
+                case path == "/health":<span class="cov0" title="0">
+                        s.handleHealth(ctx)</span>
+                case path == "/api/v1/info":<span class="cov0" title="0">
+                        s.handleInfo(ctx)</span>
+                case path == "/api/v1/deployments" &amp;&amp; method == "GET":<span class="cov0" title="0">
+                        s.handleAPIDeploymentsList(ctx)</span>
+                case path == "/api/v1/deployment" &amp;&amp; method == "GET":<span class="cov0" title="0">
+                        s.handleAPIDeploymentGet(ctx)</span>
+                case path == "/api/v1/health" &amp;&amp; method == "GET":<span class="cov0" title="0">
+                        s.handleAPIHealth(ctx)</span>
+                default:<span class="cov0" title="0">
+                        s.handleNotFound(ctx)</span>
+                }
+        })
+}
+
+// loggingMiddleware logs HTTP requests
+func (s *Server) loggingMiddleware(next fasthttp.RequestHandler) fasthttp.RequestHandler <span class="cov1" title="1">{
+        return func(ctx *fasthttp.RequestCtx) </span><span class="cov1" title="1">{
+                method := string(ctx.Method())
+                path := string(ctx.Path())
+                remoteAddr := ctx.RemoteAddr().String()
+                
+                logger.Info("HTTP request", map[string]interface{}{
+                        "method":      method,
+                        "path":        path,
+                        "remote_addr": remoteAddr,
+                })
+                
+                next(ctx)
+                
+                logger.Info("HTTP response", map[string]interface{}{
+                        "method":      method,
+                        "path":        path,
+                        "status_code": ctx.Response.StatusCode(),
+                        "remote_addr": remoteAddr,
+                })
+        }</span>
+}
+
+// handleRoot handles root endpoint
+func (s *Server) handleRoot(ctx *fasthttp.RequestCtx) <span class="cov4" title="2">{
+        ctx.SetContentType("application/json")
+        ctx.SetStatusCode(fasthttp.StatusOK)
+        ctx.WriteString(`{"message":"k6s API server","status":"running"}`)
+}</span>
+
+// handleHealth handles health check endpoint
+func (s *Server) handleHealth(ctx *fasthttp.RequestCtx) <span class="cov1" title="1">{
+        logger.Debug("Health check requested", map[string]interface{}{
+                "remote_addr": ctx.RemoteAddr().String(),
+        })
+        
+        ctx.SetContentType("application/json")
+        ctx.SetStatusCode(fasthttp.StatusOK)
+        ctx.WriteString(`{"status":"healthy"}`)
+}</span>
+
+// handleInfo handles info endpoint
+func (s *Server) handleInfo(ctx *fasthttp.RequestCtx) <span class="cov1" title="1">{
+        logger.Debug("Info requested", map[string]interface{}{
+                "remote_addr": ctx.RemoteAddr().String(),
+        })
+        
+        ctx.SetContentType("application/json")
+        ctx.SetStatusCode(fasthttp.StatusOK)
+        
+        // Use version package for dynamic version info
+        buildInfo := version.GetBuildInfo()
+        response := `{"name":"k6s","version":"` + buildInfo["version"] + `","description":"Kubernetes Controller CLI"`
+        if buildInfo["git_commit"] != "unknown" </span><span class="cov0" title="0">{
+                response += `,"git_commit":"` + buildInfo["git_commit"] + `"`
+        }</span>
+        <span class="cov1" title="1">response += `}`
+        
+        ctx.WriteString(response)</span>
+}
+
+// handleNotFound handles 404 errors
+func (s *Server) handleNotFound(ctx *fasthttp.RequestCtx) <span class="cov1" title="1">{
+        logger.Warn("Not found", map[string]interface{}{
+                "path":        string(ctx.Path()),
+                "remote_addr": ctx.RemoteAddr().String(),
+        })
+        
+        ctx.SetContentType("application/json")
+        ctx.SetStatusCode(fasthttp.StatusNotFound)
+        ctx.WriteString("Not found")
+}</span>
+
+// handleAPIDeploymentsList handles API deployment list requests
+func (s *Server) handleAPIDeploymentsList(ctx *fasthttp.RequestCtx) <span class="cov0" title="0">{
+        if s.deploymentAPI == nil </span><span class="cov0" title="0">{
+                ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+                ctx.SetContentType("application/json")
+                ctx.WriteString(`{"error": "Deployment API not available", "message": "Informer not configured"}`)
+                return
+        }</span>
+        
+        <span class="cov0" title="0">ctx.SetContentType("application/json")
+        
+        // Check if informer cache is synced
+        if !s.deploymentAPI.Informer.HasSynced() </span><span class="cov0" title="0">{
+                ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+                ctx.WriteString(`{"error": "Informer cache not synced", "message": "Cache is still synchronizing"}`)
+                return
+        }</span>
+
+        // Get deployments from cache
+        <span class="cov0" title="0">deployments, err := s.deploymentAPI.Informer.ListDeployments()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to list deployments from cache", err, nil)
+                ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+                ctx.WriteString(`{"error": "Failed to list deployments", "message": "` + err.Error() + `"}`)
+                return
+        }</span>
+
+        // Convert to API response format
+        <span class="cov0" title="0">response := api.DeploymentListResponse{
+                Items: make([]api.DeploymentResponse, 0, len(deployments)),
+                Total: len(deployments),
+        }
+
+        for _, deployment := range deployments </span><span class="cov0" title="0">{
+                item := s.deploymentAPI.ConvertDeploymentToResponse(deployment)
+                response.Items = append(response.Items, item)
+        }</span>
+
+        // Write JSON response
+        <span class="cov0" title="0">data, err := json.Marshal(response)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to marshal response", err, nil)
+                ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+                ctx.WriteString(`{"error": "Failed to encode response"}`)
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.SetStatusCode(fasthttp.StatusOK)
+        ctx.Write(data)
+
+        logger.Debug("Listed deployments from cache", map[string]interface{}{
+                "count": len(deployments),
+        })</span>
+}
+
+// handleAPIDeploymentGet handles API deployment get requests
+func (s *Server) handleAPIDeploymentGet(ctx *fasthttp.RequestCtx) <span class="cov0" title="0">{
+        if s.deploymentAPI == nil </span><span class="cov0" title="0">{
+                ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+                ctx.SetContentType("application/json")
+                ctx.WriteString(`{"error": "Deployment API not available", "message": "Informer not configured"}`)
+                return
+        }</span>
+        
+        <span class="cov0" title="0">ctx.SetContentType("application/json")
+        
+        // Extract namespace and name from query parameters
+        namespace := string(ctx.QueryArgs().Peek("namespace"))
+        name := string(ctx.QueryArgs().Peek("name"))
+
+        if name == "" </span><span class="cov0" title="0">{
+                ctx.SetStatusCode(fasthttp.StatusBadRequest)
+                ctx.WriteString(`{"error": "Missing deployment name", "message": "name parameter is required"}`)
+                return
+        }</span>
+
+        <span class="cov0" title="0">if namespace == "" </span><span class="cov0" title="0">{
+                namespace = "default"
+        }</span>
+
+        // Check if informer cache is synced
+        <span class="cov0" title="0">if !s.deploymentAPI.Informer.HasSynced() </span><span class="cov0" title="0">{
+                ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+                ctx.WriteString(`{"error": "Informer cache not synced", "message": "Cache is still synchronizing"}`)
+                return
+        }</span>
+
+        // Get deployment from cache
+        <span class="cov0" title="0">deployment, err := s.deploymentAPI.Informer.GetDeployment(namespace, name)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to get deployment from cache", err, map[string]interface{}{
+                        "namespace": namespace,
+                        "name":      name,
+                })
+                ctx.SetStatusCode(fasthttp.StatusNotFound)
+                ctx.WriteString(`{"error": "Deployment not found", "message": "` + err.Error() + `"}`)
+                return
+        }</span>
+
+        // Convert to API response format
+        <span class="cov0" title="0">response := s.deploymentAPI.ConvertDeploymentToResponse(deployment)
+
+        // Write JSON response
+        data, err := json.Marshal(response)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to marshal response", err, nil)
+                ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+                ctx.WriteString(`{"error": "Failed to encode response"}`)
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.SetStatusCode(fasthttp.StatusOK)
+        ctx.Write(data)
+
+        logger.Debug("Got deployment from cache", map[string]interface{}{
+                "namespace": namespace,
+                "name":      name,
+        })</span>
+}
+
+// handleAPIHealth handles API health check requests
+func (s *Server) handleAPIHealth(ctx *fasthttp.RequestCtx) <span class="cov0" title="0">{
+        if s.deploymentAPI == nil </span><span class="cov0" title="0">{
+                ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+                ctx.SetContentType("application/json")
+                ctx.WriteString(`{"error": "Deployment API not available", "message": "Informer not configured"}`)
+                return
+        }</span>
+        
+        <span class="cov0" title="0">ctx.SetContentType("application/json")
+
+        health := map[string]interface{}{
+                "status":      "ok",
+                "cache_synced": s.deploymentAPI.Informer.HasSynced(),
+                "timestamp":   time.Now(),
+        }
+
+        // Write JSON response
+        data, err := json.Marshal(health)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to marshal health response", err, nil)
+                ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+                ctx.WriteString(`{"error": "Failed to encode response"}`)
+                return
+        }</span>
+
+        <span class="cov0" title="0">ctx.SetStatusCode(fasthttp.StatusOK)
+        ctx.Write(data)</span>
+}
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package version
+
+// Build-time variables
+var (
+        Version   = "0.1.0"  // Will be overridden by ldflags
+        GitCommit = "unknown" // Will be overridden by ldflags
+        BuildDate = "unknown" // Will be overridden by ldflags
+)
+
+// GetVersion returns version information
+func GetVersion() string <span class="cov10" title="2">{
+        return Version
+}</span>
+
+// GetBuildInfo returns complete build information
+func GetBuildInfo() map[string]string <span class="cov1" title="1">{
+        return map[string]string{
+                "version":    Version,
+                "git_commit": GitCommit,
+                "build_date": BuildDate,
+        }
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

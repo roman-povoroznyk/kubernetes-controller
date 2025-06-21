@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Build artifacts
+bin/
+k6s
+k6s_test
+*.out
+*.html
+
+# Development files
+.vscode/
+.idea/
+*.log
+tmp/
+
+# Test files
+*_test.go
+coverage.*
+
+# CI/CD
+.github/
+.dockerignore
+
+# Dependencies (will be downloaded in container)
+vendor/
