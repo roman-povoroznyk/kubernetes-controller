@@ -49,10 +49,8 @@ func SetLevel(level LogLevel) {
 // Trace logs a message at trace level
 func Trace(msg string, fields map[string]interface{}) {
 	event := log.Trace()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -60,10 +58,8 @@ func Trace(msg string, fields map[string]interface{}) {
 // Debug logs a message at debug level
 func Debug(msg string, fields map[string]interface{}) {
 	event := log.Debug()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -71,10 +67,8 @@ func Debug(msg string, fields map[string]interface{}) {
 // Info logs a message at info level
 func Info(msg string, fields map[string]interface{}) {
 	event := log.Info()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -82,10 +76,8 @@ func Info(msg string, fields map[string]interface{}) {
 // Warn logs a message at warn level
 func Warn(msg string, fields map[string]interface{}) {
 	event := log.Warn()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -96,10 +88,8 @@ func Error(msg string, err error, fields map[string]interface{}) {
 	if err != nil {
 		event = event.Err(err)
 	}
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -110,10 +100,8 @@ func Fatal(msg string, err error, fields map[string]interface{}) {
 	if err != nil {
 		event = event.Err(err)
 	}
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }

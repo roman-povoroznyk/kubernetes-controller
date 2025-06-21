@@ -52,8 +52,12 @@ func init() {
 	serverCmd.Flags().IntVarP(&serverPort, "port", "p", 8080, "server port")
 	
 	// Bind flag to viper for environment variable support
-	viper.BindPFlag("server.port", serverCmd.Flags().Lookup("port"))
+	if err := viper.BindPFlag("server.port", serverCmd.Flags().Lookup("port")); err != nil {
+		logger.Error("Failed to bind port flag", err, nil)
+	}
 	
 	// Allow environment variables like K6S_SERVER_PORT
-	viper.BindEnv("server.port", "K6S_SERVER_PORT")
+	if err := viper.BindEnv("server.port", "K6S_SERVER_PORT"); err != nil {
+		logger.Error("Failed to bind server port env", err, nil)
+	}
 }
