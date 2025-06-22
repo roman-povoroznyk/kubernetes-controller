@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -44,6 +45,28 @@ func init() {
 
 	// Bind pflag to cobra
 	rootCmd.PersistentFlags().AddFlagSet(pflag.CommandLine)
+
+	// Initialize Viper
+	initViper()
+}
+
+// initViper initializes Viper for environment variables
+func initViper() {
+	// Use environment variables with prefix "K8S_CTRL_"
+	viper.SetEnvPrefix("K8S_CTRL")
+
+	// Replace dashes with underscores in env vars
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+
+	// Automatically read from environment variables
+	viper.AutomaticEnv()
+
+	// Bind flags to viper
+	viper.BindPFlag("log-level", pflag.Lookup("log-level"))
+	viper.BindPFlag("kubeconfig", pflag.Lookup("kubeconfig"))
+
+	// Set defaults if needed
+	viper.SetDefault("log-level", defaultLogLevel)
 }
 
 // parseLogLevel converts string to zerolog.Level
@@ -79,18 +102,20 @@ func handleError(err error, action string) {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "controller",
-	Short: "Kubernetes resource operations CLI",
+	Use:   "k8s-ctrl",
+	Short: "Kubernetes controller CLI",
+	Long:  `k8s-ctrl - lightweight CLI for managing Kubernetes resources`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Parse and set log level from pflag
-		level := parseLogLevel(logLevel)
+		// Get log level from viper (environment or flag)
+		logLevelStr := viper.GetString("log-level")
+		level := parseLogLevel(logLevelStr)
 		configureLogger(level)
 
 		// Enhanced logging with more context
 		log.Info().
 			Str("command", cmd.Name()).
 			Strs("args", args).
-			Str("log-level", logLevel).
+			Str("log-level", logLevelStr).
 			Msg("Command started")
 
 		if Clientset != nil {
@@ -98,11 +123,12 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Get kubeconfig path with priorities:
-		// 1. Command line flag
-		// 2. KUBECONFIG environment variable
+		// 1. Command line flag / environment variable (via viper)
+		// 2. KUBECONFIG env var (legacy support)
 		// 3. Default ~/.kube/config
-		kubeconfig := kubeconfigPath
+		kubeconfig := viper.GetString("kubeconfig")
 		if kubeconfig == "" {
+			// Legacy support for KUBECONFIG env var
 			kubeconfig = os.Getenv("KUBECONFIG")
 			if kubeconfig == "" {
 				kubeconfig = clientcmd.RecommendedHomeFile

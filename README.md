@@ -1,6 +1,6 @@
-# Kubernetes Controller CLI
+# Kubernetes Controller CLI (k8s-ctrl)
 
-A CLI utility for creating, listing, and deleting Pods in a Kubernetes cluster.
+A lightweight CLI utility for creating, listing, and deleting Pods in a Kubernetes cluster.
 
 ---
 
@@ -18,6 +18,7 @@ A CLI utility for creating, listing, and deleting Pods in a Kubernetes cluster.
 git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
 cd kubernetes-controller
 go mod tidy
+go build -o k8s-ctrl main.go
 ```
 
 ---
@@ -29,20 +30,65 @@ go mod tidy
 ### Create a Pod
 
 ```sh
-go run main.go create pod my-nginx --namespace=default
+./k8s-ctrl create pod nginx
 ```
 
 ### List Pods
 
 ```sh
-go run main.go list pod --namespace=default
+./k8s-ctrl list pod
 ```
 
 ### Delete a Pod
 
 ```sh
-go run main.go delete pod my-nginx --namespace=default
+./k8s-ctrl delete pod nginx
 ```
+
+### Namespace Selection
+
+Specify a namespace with the `-n` or `--namespace` flag:
+
+```sh
+./k8s-ctrl list pod --namespace=kube-system
+./k8s-ctrl create pod nginx -n custom-namespace
+```
+
+### Log Level Control
+
+Control the log level using the `--log-level` or `-l` flag:
+
+```sh
+./k8s-ctrl list pod --log-level=debug
+./k8s-ctrl create pod nginx -l trace
+```
+
+Available log levels: `trace`, `debug`, `info`, `warn`, `error`
+
+### Kubeconfig Path
+
+Specify a custom kubeconfig path:
+
+```sh
+./k8s-ctrl list pod --kubeconfig=/path/to/custom/config
+```
+
+### Environment Variables
+
+The CLI supports configuration through environment variables with the `K8S_CTRL_` prefix:
+
+```sh
+# Set log level
+export K8S_CTRL_LOG_LEVEL=debug
+
+# Set custom kubeconfig
+export K8S_CTRL_KUBECONFIG=/path/to/kubeconfig
+
+# Run command using environment settings
+./k8s-ctrl list pod
+```
+
+**Note**: Command-line flags take precedence over environment variables.
 
 ---
 
