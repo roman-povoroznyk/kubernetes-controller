@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/roman-povoroznyk/kubernetes-controller/internal/kubeops"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -19,13 +18,9 @@ var deletePodCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		podName := args[0]
-		log.Info().Str("namespace", deleteNamespace).Str("name", podName).Msg("Deleting pod")
-
 		if err := kubeops.DeletePod(Clientset, deleteNamespace, podName); err != nil {
 			handleError(err, "Failed to delete pod")
 		}
-
-		log.Info().Str("name", podName).Msg("Pod deleted successfully")
 	},
 }
 
