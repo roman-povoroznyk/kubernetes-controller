@@ -1,7 +1,7 @@
 package main
 
-import "kubernetes-controller/cmd"
+import "github.com/roman-povoroznyk/kubernetes-controller/cmd"
 
 func main() {
-    cmd.Execute()
+	cmd.Execute()
 }
