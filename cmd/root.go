@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Version = "v0.5.1"
+var Version = "v0.5.2"
 var logLevel string
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,17 +50,23 @@ func init() {
 		"Set log level (trace, debug, info, warn, error)")
 	
 	// Bind flag to viper for environment variable support
-	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
+	if err := viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level")); err != nil {
+		logger.Error("Failed to bind log level flag", err, nil)
+	}
 	
 	// Set environment variable prefix
 	viper.SetEnvPrefix("K6S")
 	viper.AutomaticEnv()
 	
 	// Allow environment variables like K6S_LOG_LEVEL
-	viper.BindEnv("log.level", "K6S_LOG_LEVEL")
+	if err := viper.BindEnv("log.level", "K6S_LOG_LEVEL"); err != nil {
+		logger.Error("Failed to bind log level env", err, nil)
+	}
 	
 	// Add flag completion
-	rootCmd.RegisterFlagCompletionFunc("log-level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if err := rootCmd.RegisterFlagCompletionFunc("log-level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"trace", "debug", "info", "warn", "error"}, cobra.ShellCompDirectiveDefault
-	})
+	}); err != nil {
+		logger.Error("Failed to register flag completion", err, nil)
+	}
 }

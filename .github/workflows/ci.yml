@@ -76,7 +76,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Run Gosec Security Scanner
-        uses: securecodewarrior/github-action-gosec@master
+        uses: securecodewarrior/gosec-action@v1
         with:
           args: './...'
 
@@ -118,7 +118,7 @@ jobs:
           echo "CHART_VERSION=$(grep '^version:' charts/k6s/Chart.yaml | cut -d' ' -f2)" >> $GITHUB_ENV
 
       - name: Upload Helm chart artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: helm-chart
           path: charts/*.tgz
@@ -150,7 +150,7 @@ jobs:
             -o bin/k6s .
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: k6s-binary
           path: bin/k6s
@@ -218,7 +218,7 @@ jobs:
           version: '3.12.0'
 
       - name: Download Helm chart artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: helm-chart
           path: charts/
