@@ -4,162 +4,90 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	defaultLogLevel   = "info"
-	defaultTimeout    = 10 * time.Second
-	defaultTimeFormat = "15:04:05"
-)
+var Clientset *kubernetes.Clientset
 
-var (
-	Clientset      *kubernetes.Clientset
-	logLevel       string
-	kubeconfigPath string
-)
-
-func init() {
-	// Configure human-friendly console output for logs
-	output := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: defaultTimeFormat,
-		NoColor:    false,
-	}
-	log.Logger = log.Output(output)
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	// Add pflags
-	pflag.StringVarP(&logLevel, "log-level", "l", defaultLogLevel,
-		"Log level (trace, debug, info, warn, error)")
-	pflag.StringVar(&kubeconfigPath, "kubeconfig", "",
-		"Path to kubeconfig file (defaults to KUBECONFIG env var or ~/.kube/config)")
-
-	// Bind pflag to cobra
-	rootCmd.PersistentFlags().AddFlagSet(pflag.CommandLine)
-
-	// Initialize Viper
-	initViper()
-}
-
-// initViper initializes Viper for environment variables
-func initViper() {
-	// Use environment variables with prefix "K8S_CTRL_"
-	viper.SetEnvPrefix("K8S_CTRL")
-
-	// Replace dashes with underscores in env vars
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-
-	// Automatically read from environment variables
-	viper.AutomaticEnv()
-
-	// Bind flags to viper
-	viper.BindPFlag("log-level", pflag.Lookup("log-level"))
-	viper.BindPFlag("kubeconfig", pflag.Lookup("kubeconfig"))
-
-	// Set defaults if needed
-	viper.SetDefault("log-level", defaultLogLevel)
-}
-
-// parseLogLevel converts string to zerolog.Level
-func parseLogLevel(lvl string) zerolog.Level {
-	switch strings.ToLower(lvl) {
-	case "trace":
-		return zerolog.TraceLevel
-	case "debug":
-		return zerolog.DebugLevel
-	case "info":
-		return zerolog.InfoLevel
-	case "warn":
-		return zerolog.WarnLevel
-	case "error":
-		return zerolog.ErrorLevel
-	default:
-		return zerolog.InfoLevel
-	}
-}
-
-// configureLogger sets up logger with specified level
-func configureLogger(level zerolog.Level) {
-	zerolog.SetGlobalLevel(level)
-	log.Debug().Str("level", level.String()).Msg("Log level set")
-}
-
-// handleError logs error and exits
-func handleError(err error, action string) {
-	if err != nil {
-		log.Error().Err(err).Msg(action)
-		os.Exit(1)
-	}
-}
-
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "k8s-ctrl",
-	Short: "Kubernetes controller CLI",
-	Long:  `k8s-ctrl - lightweight CLI for managing Kubernetes resources`,
+	Short: "A lightweight CLI for managing Kubernetes resources",
+	Long:  `k8s-ctrl is a command-line tool to interact with your Kubernetes cluster, allowing you to manage resources like Pods.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Get log level from viper (environment or flag)
-		logLevelStr := viper.GetString("log-level")
-		level := parseLogLevel(logLevelStr)
-		configureLogger(level)
-
-		// Enhanced logging with more context
-		log.Info().
-			Str("command", cmd.Name()).
-			Strs("args", args).
-			Str("log-level", logLevelStr).
-			Msg("Command started")
+		if err := setupLogging(); err != nil {
+			return err
+		}
 
 		if Clientset != nil {
 			return nil
 		}
 
-		// Get kubeconfig path with priorities:
-		// 1. Command line flag / environment variable (via viper)
-		// 2. KUBECONFIG env var (legacy support)
-		// 3. Default ~/.kube/config
+		log.Debug().Msg("Initializing Kubernetes client")
 		kubeconfig := viper.GetString("kubeconfig")
 		if kubeconfig == "" {
-			// Legacy support for KUBECONFIG env var
-			kubeconfig = os.Getenv("KUBECONFIG")
-			if kubeconfig == "" {
-				kubeconfig = clientcmd.RecommendedHomeFile
-			}
+			kubeconfig = clientcmd.RecommendedHomeFile
 		}
 
-		log.Debug().Str("kubeconfig", kubeconfig).Msg("Using kubeconfig")
-
+		log.Debug().Str("path", kubeconfig).Msg("Using kubeconfig file")
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			log.Error().Err(err).Str("path", kubeconfig).Msg("Failed to load kubeconfig")
-			return fmt.Errorf("failed to load kubeconfig: %w", err)
+			return fmt.Errorf("failed to build config from flags: %w", err)
 		}
 
 		Clientset, err = kubernetes.NewForConfig(config)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to create clientset")
-			return fmt.Errorf("failed to create clientset: %w", err)
+			return fmt.Errorf("failed to create kubernetes clientset: %w", err)
 		}
-
 		log.Info().Msg("Kubernetes client initialized successfully")
 		return nil
-	},
-	PersistentPostRun: func(cmd *cobra.Command, args []string) {
-		log.Info().Str("command", cmd.Name()).Msg("Command finished")
 	},
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := RootCmd.Execute(); err != nil {
 		log.Error().Err(err).Msg("CLI execution failed")
 		os.Exit(1)
 	}
+}
+
+func HandleError(err error, message string) {
+	log.Error().Err(err).Msg(message)
+	os.Exit(1)
+}
+
+func init() {
+	cobra.OnInitialize(initViper)
+
+	RootCmd.PersistentFlags().StringP("kubeconfig", "k", "", "path to the kubeconfig file")
+	RootCmd.PersistentFlags().StringP("log-level", "l", "info", "log level (debug, info, warn, error)")
+
+	viper.BindPFlag("kubeconfig", RootCmd.PersistentFlags().Lookup("kubeconfig"))
+	viper.BindPFlag("log-level", RootCmd.PersistentFlags().Lookup("log-level"))
+}
+
+func initViper() {
+	viper.SetEnvPrefix("K8S_CTRL")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+}
+
+func setupLogging() error {
+	logLevelStr := viper.GetString("log-level")
+	level, err := zerolog.ParseLevel(logLevelStr)
+	if err != nil {
+		return fmt.Errorf("invalid log level '%s': %w", logLevelStr, err)
+	}
+
+	zerolog.SetGlobalLevel(level)
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: "15:04:05",
+	})
+	return nil
 }

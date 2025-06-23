@@ -1,135 +1,106 @@
-# Kubernetes Controller CLI (k8s-ctrl)
+# Kubernetes Controller
 
-A lightweight CLI utility for creating, listing, and deleting Pods in a Kubernetes cluster.
+A lightweight command-line tool for interacting with Kubernetes clusters with a high-performance HTTP server.
 
----
+## Features
 
-## Requirements
-
-- Go 1.21+
-- A running Kubernetes cluster (e.g., [minikube](https://minikube.sigs.k8s.io/docs/))
-- A valid kubeconfig with access to your cluster
-
----
+- **Pod Management**: Create, delete, and list pods in a Kubernetes cluster
+- **High-Performance HTTP Server**: FastHTTP-based server with health endpoint
+- **Structured Logging**: Detailed request logging with unique request IDs
+- **Graceful Shutdown**: Clean shutdown with configurable timeout
+- **kubectl-like Output**: Familiar output format for Kubernetes operations
 
 ## Installation
 
-```sh
+```bash
+# Clone the repository
 git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
+
+# Change to the project directory
 cd kubernetes-controller
-go mod tidy
+
+# Build the binary
 go build -o k8s-ctrl main.go
 ```
 
----
-
 ## Usage
 
-> By default, the CLI uses the current context from `~/.kube/config`.
+### Kubernetes Operations
 
-### Create a Pod
-
-```sh
-./k8s-ctrl create pod nginx
-```
-
-### List Pods
-
-```sh
+```bash
+# List pods
 ./k8s-ctrl list pod
-```
 
-### Delete a Pod
+# Create a pod
+./k8s-ctrl create pod nginx-pod
 
-```sh
-./k8s-ctrl delete pod nginx
-```
+# Delete a pod
+./k8s-ctrl delete pod nginx-pod
 
-### Namespace Selection
-
-Specify a namespace with the `-n` or `--namespace` flag:
-
-```sh
-./k8s-ctrl list pod --namespace=kube-system
-./k8s-ctrl create pod nginx -n custom-namespace
-```
-
-### Log Level Control
-
-Control the log level using the `--log-level` or `-l` flag:
-
-```sh
-./k8s-ctrl list pod --log-level=debug
-./k8s-ctrl create pod nginx -l trace
-```
-
-Available log levels: `trace`, `debug`, `info`, `warn`, `error`
-
-### Kubeconfig Path
-
-Specify a custom kubeconfig path:
-
-```sh
-./k8s-ctrl list pod --kubeconfig=/path/to/custom/config
-```
-
-### Environment Variables
-
-The CLI supports configuration through environment variables with the `K8S_CTRL_` prefix:
-
-```sh
 # Set log level
-export K8S_CTRL_LOG_LEVEL=debug
-
-# Set custom kubeconfig
-export K8S_CTRL_KUBECONFIG=/path/to/kubeconfig
-
-# Run command using environment settings
-./k8s-ctrl list pod
+./k8s-ctrl list pod --log-level debug
 ```
 
-**Note**: Command-line flags take precedence over environment variables.
+### HTTP Server
 
----
+```bash
+# Start HTTP server on port 8080
+./k8s-ctrl server --server-port 8080
 
-## Project Structure
-
-```
-kubernetes-controller/
-├── cmd/                # CLI commands (create, delete, list)
-├── internal/kubeops/   # Business logic for Kubernetes API operations
-├── main.go             # Entry point
-├── go.mod, go.sum      # Go dependencies
+# Start with detailed logging
+./k8s-ctrl server --server-port 8080 --log-level debug
 ```
 
----
+### Available Endpoints
 
-## Testing
+- `GET /health` - Health check endpoint that returns "OK"
+- `GET /` - Welcome page with a greeting message
+- All other paths return a 404 Not Found response
 
-To run unit tests:
+## Development
 
-```sh
-go test ./internal/kubeops
+### Running Tests
+
+```bash
+# Run all tests
+go test ./...
+
+# Run server tests
+go test ./internal/server/...
+
+# Run with code coverage
+go test -cover ./...
 ```
 
-For verbose output:
+### Project Structure
 
-```sh
-go test -v ./internal/kubeops
+```
+.
+├── cmd/                     # CLI commands
+│   ├── kubernetes/          # Kubernetes interaction commands
+│   │   ├── create.go        # Pod creation command
+│   │   ├── delete.go        # Pod deletion command
+│   │   └── list.go          # Pod listing command
+│   ├── server/              # HTTP server command
+│   └── root.go              # Root CLI command
+├── internal/                # Internal logic
+│   ├── kubernetes/          # Kubernetes operations
+│   │   └── pods.go          # Pod-related operations
+│   └── server/              # HTTP server
+│       ├── middleware/      # HTTP middleware
+│       │   └── logging.go   # Request logging middleware
+│       ├── handler.go       # HTTP request handlers
+│       └── server.go        # FastHTTP server
+└── main.go                  # Entry point
 ```
 
----
+## Key Components
 
-## Extending
-
-- To add support for other resources (e.g., Deployment, StatefulSet), add corresponding functions in `internal/kubeops/` and subcommands in `cmd/`.
-- To work with a different cluster, change the context using:
-  ```sh
-  kubectl config use-context <context-name>
-  ```
-
----
+- **FastHTTP Server**: High-performance HTTP server with middleware support
+- **Request Logging**: Detailed logging with unique request IDs for traceability
+- **Kubernetes Client**: Client-go based Kubernetes API interactions
+- **Cobra CLI**: Command-line interface for user interaction
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
