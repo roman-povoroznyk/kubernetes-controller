@@ -290,3 +290,4 @@ func (s *Server) handleAPIHealth(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.Write(data)
 }
+# Server improvements
