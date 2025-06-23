@@ -1,7 +1,8 @@
-package cmd
+package kubernetes
 
 import (
-	"github.com/roman-povoroznyk/kubernetes-controller/internal/kubeops"
+	"github.com/roman-povoroznyk/kubernetes-controller/cmd"
+	"github.com/roman-povoroznyk/kubernetes-controller/internal/kubernetes"
 	"github.com/spf13/cobra"
 )
 
@@ -16,10 +17,10 @@ var createPodCmd = &cobra.Command{
 	Use:   "pod [name]",
 	Short: "Create a pod",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(c *cobra.Command, args []string) {
 		podName := args[0]
-		if err := kubeops.CreatePod(Clientset, createNamespace, podName); err != nil {
-			handleError(err, "Failed to create pod")
+		if err := kubernetes.CreatePod(cmd.Clientset, createNamespace, podName); err != nil {
+			cmd.HandleError(err, "Failed to create pod")
 		}
 	},
 }
@@ -27,5 +28,6 @@ var createPodCmd = &cobra.Command{
 func init() {
 	createCmd.PersistentFlags().StringVarP(&createNamespace, "namespace", "n", "default", "Namespace")
 	createCmd.AddCommand(createPodCmd)
-	rootCmd.AddCommand(createCmd)
+
+	cmd.RootCmd.AddCommand(createCmd)
 }

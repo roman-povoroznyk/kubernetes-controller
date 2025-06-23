@@ -1,4 +1,4 @@
-package kubeops
+package kubernetes
 
 import (
 	"context"
@@ -13,6 +13,61 @@ import (
 
 const defaultTimeout = 10 * time.Second
 
+// CreatePod creates a new pod with the given name in the specified namespace
+func CreatePod(clientset kubernetes.Interface, namespace, podName string) error {
+	log.Debug().Str("namespace", namespace).Str("name", podName).Msg("Creating pod via API")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: podName,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "nginx",
+					Image: "nginx:alpine",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 80,
+							Protocol:      corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := clientset.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create pod %s: %w", podName, err)
+	}
+
+	// kubectl-style output
+	fmt.Printf("pod/%s created\n", podName)
+	return nil
+}
+
+// DeletePod deletes the pod with the given name in the specified namespace
+func DeletePod(clientset kubernetes.Interface, namespace, podName string) error {
+	log.Debug().Str("namespace", namespace).Str("name", podName).Msg("Deleting pod via API")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	err := clientset.CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete pod %s: %w", podName, err)
+	}
+
+	// kubectl-style output
+	fmt.Printf("pod \"%s\" deleted\n", podName)
+	return nil
+}
+
+// ListPods lists all pods in the specified namespace
 func ListPods(clientset kubernetes.Interface, namespace string) error {
 	log.Debug().Str("namespace", namespace).Msg("Listing pods via API")
 
@@ -45,6 +100,7 @@ func ListPods(clientset kubernetes.Interface, namespace string) error {
 	return nil
 }
 
+// countReadyContainers returns the number of ready containers in a pod
 func countReadyContainers(pod corev1.Pod) int {
 	ready := 0
 	for _, condition := range pod.Status.Conditions {
@@ -56,6 +112,7 @@ func countReadyContainers(pod corev1.Pod) int {
 	return ready
 }
 
+// countRestarts returns the total number of restarts across all containers in a pod
 func countRestarts(pod corev1.Pod) int32 {
 	var restarts int32
 	for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -64,6 +121,7 @@ func countRestarts(pod corev1.Pod) int32 {
 	return restarts
 }
 
+// formatAge formats the pod age into a human-readable string
 func formatAge(creationTime time.Time) string {
 	age := time.Since(creationTime)
 
@@ -76,50 +134,4 @@ func formatAge(creationTime time.Time) string {
 	} else {
 		return fmt.Sprintf("%dd", int(age.Hours()/24))
 	}
-}
-
-func CreatePod(clientset kubernetes.Interface, namespace, podName string) error {
-	log.Debug().Str("namespace", namespace).Str("name", podName).Msg("Creating pod via API")
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: podName,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:  "nginx",
-					Image: "nginx:alpine",
-				},
-			},
-		},
-	}
-
-	_, err := clientset.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create pod %s: %w", podName, err)
-	}
-
-	// kubectl-style output
-	fmt.Printf("pod/%s created\n", podName)
-	return nil
-}
-
-func DeletePod(clientset kubernetes.Interface, namespace, podName string) error {
-	log.Debug().Str("namespace", namespace).Str("name", podName).Msg("Deleting pod via API")
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	err := clientset.CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to delete pod %s: %w", podName, err)
-	}
-
-	// kubectl-style output
-	fmt.Printf("pod \"%s\" deleted\n", podName)
-	return nil
 }
