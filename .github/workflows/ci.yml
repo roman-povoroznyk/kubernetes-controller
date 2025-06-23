@@ -76,7 +76,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Run Gosec Security Scanner
-        uses: securecodewarrior/gosec-action@master
+        uses: securego/gosec@master
         with:
           args: './...'
 
@@ -143,7 +143,7 @@ jobs:
           VERSION=$(git describe --tags --always --dirty)
           BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           GO_VERSION=$(go version | cut -d " " -f 3)
-          
+
           go build -ldflags "-X github.com/roman-povoroznyk/k6s/cmd.Version=${VERSION} \
             -X github.com/roman-povoroznyk/k6s/cmd.BuildTime=${BUILD_TIME} \
             -X github.com/roman-povoroznyk/k6s/cmd.GoVersion=${GO_VERSION}" \
@@ -238,17 +238,17 @@ jobs:
           # Create or update gh-pages branch with Helm repository
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Clone gh-pages branch or create it
           git checkout --orphan gh-pages || git checkout gh-pages
           git pull origin gh-pages || true
-          
+
           # Copy packaged chart
           cp charts/*.tgz ./ || true
-          
+
           # Generate or update index
           helm repo index . --url https://roman-povoroznyk.github.io/kubernetes-controller
-          
+
           # Commit and push
           git add .
           git commit -m "Release Helm chart $(basename charts/*.tgz .tgz)" || true
