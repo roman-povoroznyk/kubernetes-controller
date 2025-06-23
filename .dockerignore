@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# CI/CD
+.github/
+.goreleaser.yml
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Binaries and build artifacts
+bin/
+dist/
+*.exe
+*.test
+
+# Test files and coverage
+*_test.go
+*.out
+coverage.html
+coverage.out
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# Kubernetes and Helm
+charts/
+*.kubeconfig
+*.tgz
+
+# Development tools
+Makefile

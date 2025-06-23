@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "k6s.fullname" . }}-test-connection"
+  labels:
+    {{- include "k6s.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: wget
+      image: busybox:1.36
+      command: ['wget']
+      args: ['{{ include "k6s.fullname" . }}:{{ .Values.service.port }}/health']
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        capabilities:
+          drop:
+          - ALL

@@ -30,6 +30,18 @@ help:
 	@echo "  clean         - Clean build artifacts"
 	@echo "  deps          - Download dependencies"
 	@echo "  install-tools - Install development tools"
+	@echo "  helm-lint     - Lint Helm chart"
+	@echo "  helm-template - Template Helm chart"
+	@echo "  helm-package  - Package Helm chart"
+	@echo "  helm-install  - Install Helm chart"
+	@echo "  helm-test     - Test Helm chart"
+	@echo "  helm-uninstall- Uninstall Helm chart"
+	@echo "  helm-lint     - Lint Helm chart"
+	@echo "  helm-template  - Template Helm chart"
+	@echo "  helm-package   - Package Helm chart"
+	@echo "  helm-install    - Install Helm chart"
+	@echo "  helm-test      - Test Helm chart"
+	@echo "  helm-uninstall  - Uninstall Helm chart"
 
 # Build targets
 build:
@@ -106,3 +118,28 @@ install-tools:
 	@echo "Installing development tools..."
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+# Helm targets
+helm-lint:
+	@echo "Linting Helm chart..."
+	@helm lint charts/k6s
+
+helm-template:
+	@echo "Templating Helm chart..."
+	@helm template k6s charts/k6s
+
+helm-package:
+	@echo "Packaging Helm chart..."
+	@helm package charts/k6s -d charts/
+
+helm-install:
+	@echo "Installing Helm chart..."
+	@helm install k6s charts/k6s
+
+helm-test:
+	@echo "Testing Helm chart..."
+	@helm test k6s
+
+helm-uninstall:
+	@echo "Uninstalling Helm chart..."
+	@helm uninstall k6s
