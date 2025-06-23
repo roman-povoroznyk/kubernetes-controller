@@ -1,6 +1,8 @@
 module github.com/roman-povoroznyk/k6s
 
-go 1.24.4
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	github.com/rs/zerolog v1.34.0
