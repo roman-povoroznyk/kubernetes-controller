@@ -35,7 +35,9 @@ func TestServerEndpoints(t *testing.T) {
 	
 	// Start server in goroutine
 	go func() {
-		server.Start()
+		if err := server.Start(); err != nil {
+			t.Errorf("Server failed to start: %v", err)
+		}
 	}()
 	
 	// Wait for server to start
