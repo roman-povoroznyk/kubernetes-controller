@@ -1,75 +1,72 @@
-package cmd
+package kubernetes
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"text/tabwriter"
 	"time"
 
-	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
-var (
-	allNamespaces bool
-	kubeconfig    string
-)
-
-// listCmd represents the list command
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List Kubernetes deployments",
-	Long:  `List Kubernetes deployments in the specified namespace or all namespaces.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Build kubeconfig path
-		if kubeconfig == "" {
-			if home := homedir.HomeDir(); home != "" {
-				kubeconfig = filepath.Join(home, ".kube", "config")
-			}
-		}
-
-		// Load kubeconfig
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error loading kubeconfig: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Create Kubernetes client
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error creating kubernetes client: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Determine namespace
-		namespace := "default"
-		if allNamespaces {
-			namespace = ""
-		}
-
-		// List deployments
-		deployments, err := clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error listing deployments: %v\n", err)
-			os.Exit(1)
-		}
-
-		// Print results
-		printDeployments(deployments.Items, allNamespaces)
-	},
+// DeploymentList lists deployments in the specified namespace
+func (c *Client) DeploymentList(namespace string) (*appsv1.DeploymentList, error) {
+	return c.clientset.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 }
 
-// printDeployments prints deployments in kubectl-like format
-func printDeployments(deployments []appsv1.Deployment, showNamespace bool) {
+// DeploymentCreate creates a new deployment
+func (c *Client) DeploymentCreate(namespace, name, image string, replicas int32) error {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": name,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": name,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  name,
+							Image: image,
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := c.clientset.AppsV1().Deployments(namespace).Create(context.TODO(), deployment, metav1.CreateOptions{})
+	return err
+}
+
+// DeploymentDelete deletes a deployment
+func (c *Client) DeploymentDelete(namespace, name string) error {
+	return c.clientset.AppsV1().Deployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
+// DeploymentPrint prints deployments in kubectl-like format
+func DeploymentPrint(deployments []appsv1.Deployment, showNamespace bool) {
 	if len(deployments) == 0 {
-		fmt.Println("no deployments found")
+		fmt.Println("No resources found.")
 		return
 	}
 
@@ -142,11 +139,4 @@ func FormatAge(t time.Time) string {
 		// <1m - show seconds
 		return fmt.Sprintf("%ds", seconds)
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(listCmd)
-
-	listCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "List deployments across all namespaces")
-	listCmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to kubeconfig file")
 }

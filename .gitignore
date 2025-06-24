@@ -62,3 +62,4 @@ temp/
 # Helm
 charts/*.tgz
 !charts/k6s/
+index.yaml

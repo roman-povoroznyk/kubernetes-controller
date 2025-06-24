@@ -1,0 +1,14 @@
+# GoReleaser Dockerfile - uses pre-built binary
+FROM gcr.io/distroless/static:nonroot
+
+# Copy the binary from GoReleaser context
+COPY kubernetes-controller /usr/local/bin/k6s
+
+# Use non-root user
+USER nonroot:nonroot
+
+# Expose port
+EXPOSE 8080
+
+# Run the binary
+ENTRYPOINT ["/usr/local/bin/k6s"]

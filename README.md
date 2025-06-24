@@ -24,6 +24,9 @@ go install github.com/roman-povoroznyk/kubernetes-controller/k6s@latest
 helm repo add k6s https://roman-povoroznyk.github.io/kubernetes-controller
 helm install k6s k6s/k6s
 
+# Install specific chart version
+helm install k6s k6s/k6s --version 0.1.0
+
 # Install from source
 git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
 cd kubernetes-controller/k6s
@@ -39,10 +42,17 @@ k6s --help
 # Show version
 k6s version
 
-# List deployments
-k6s list
-k6s list --all-namespaces
-k6s list -A
+# List deployments (multiple ways to do it)
+k6s deployment list
+k6s deployment list --all-namespaces
+
+# Create deployments
+k6s deployment create my-app --image=nginx --replicas=3
+k6s deployment create api --image=httpd:alpine --replicas=1 --namespace=prod
+
+# Delete deployments
+k6s deployment delete my-app
+k6s deployment delete api --namespace=prod
 
 # Start server
 k6s server
@@ -71,7 +81,7 @@ curl http://localhost:8080/health
 
 ### Kubernetes Integration
 - [x] **Step 6**: k8s.io/client-go to list Kubernetes deployment resources in default namespace, auth via kubeconfig, list cli command
-- [ ] **Step 6+**: Add create/delete command
+- [x] **Step 6+**: Add create/delete command, refactor command structure to kubectl-like deployment subcommands
 - [ ] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
 - [ ] **Step 7+**: add custom logic function for update/delete events using informers cache search
 - [ ] **Step 7++**: use config to setup informers start configuration

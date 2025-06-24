@@ -65,6 +65,5 @@ Create the name of the service account to use
 Create the image name
 */}}
 {{- define "k6s.image" -}}
-{{- $tag := .Values.image.tag | default .Chart.AppVersion }}
-{{- printf "%s:%s" .Values.image.repository $tag }}
+{{- printf "%s:%s" .Values.image.repository .Values.image.tag }}
 {{- end }}
