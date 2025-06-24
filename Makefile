@@ -2,7 +2,7 @@ APP = k8s-ctrl
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_FLAGS = -v -o $(APP) -ldflags "-X=github.com/roman-povoroznyk/kubernetes-controller/cmd.appVersion=$(VERSION)"
 
-.PHONY: all build test run docker-build clean
+.PHONY: all build test coverage run docker-build clean
 
 all: build
 
@@ -13,8 +13,8 @@ test:
 	go test ./...
 
 coverage:
-  go test -coverprofile=coverage.out ./...
-  go tool cover -html=coverage.out
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
 
 run:
 	go run main.go
