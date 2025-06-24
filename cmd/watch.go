@@ -81,3 +81,12 @@ func watchDeployments() {
 func init() {
 	rootCmd.AddCommand(watchCmd)
 }
+
+// Додаємо business rules validation
+import "kubernetes-controller/pkg/business"
+
+func addBusinessRulesValidation() {
+	ruleEngine := business.NewRuleEngine()
+	// Business rules will be validated in informer handlers
+	_ = ruleEngine
+}
