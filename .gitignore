@@ -1,16 +1,35 @@
-# Binaries for programs and plugins
+# Binaries
+k8s-ctrl
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, build artifacts
-*.test
-k8s-ctrl
+# Build directories
+/build/
+/bin/
 
-# Output of the go coverage tool
+# Go modules
+vendor/
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test output
 *.out
 
-# Dependency directories (remove if you use vendoring)
-vendor/
+# Logs
+*.log
+
+# Coverage files
+*.coverprofile
+coverage.out
+coverage.xml
