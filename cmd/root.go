@@ -13,12 +13,14 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+var appVersion = "dev"
 var Clientset *kubernetes.Clientset
 
 var RootCmd = &cobra.Command{
-	Use:   "k8s-ctrl",
-	Short: "A lightweight CLI for managing Kubernetes resources",
-	Long:  `k8s-ctrl is a command-line tool to interact with your Kubernetes cluster, allowing you to manage resources like Pods.`,
+	Use:     "k8s-ctrl",
+	Short:   "A lightweight CLI for managing Kubernetes resources",
+	Long:    `k8s-ctrl is a command-line tool to interact with your Kubernetes cluster, allowing you to manage resources like Pods.`,
+	Version: appVersion,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := setupLogging(); err != nil {
 			return err
