@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/roman-povoroznyk/k6s/pkg/logger"
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var Version = "v0.5.2"
+var Version = "v0.6.0"
 var logLevel string
 
 // rootCmd represents the base command when called without any subcommands

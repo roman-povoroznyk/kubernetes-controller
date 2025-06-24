@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/roman-povoroznyk/k6s/pkg/logger"
-	"github.com/roman-povoroznyk/k6s/pkg/server"
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/logger"
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

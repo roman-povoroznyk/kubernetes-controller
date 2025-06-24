@@ -18,7 +18,7 @@ A Golang CLI application for managing Kubernetes deployments with informers and 
 
 ```bash
 # Install via Go
-go install github.com/roman-povoroznyk/k6s@latest
+go install github.com/roman-povoroznyk/kubernetes-controller/k6s@latest
 
 # Install via Helm
 helm repo add k6s https://roman-povoroznyk.github.io/kubernetes-controller
@@ -26,7 +26,7 @@ helm install k6s k6s/k6s
 
 # Install from source
 git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
-cd kubernetes-controller
+cd kubernetes-controller/k6s
 make build
 ```
 
@@ -38,6 +38,11 @@ k6s --help
 
 # Show version
 k6s version
+
+# List deployments
+k6s list
+k6s list --all-namespaces
+k6s list -A
 
 # Start server
 k6s server
@@ -65,7 +70,7 @@ curl http://localhost:8080/health
 - [x] **Step 5**: makefile, distroless dockerfile, github workflow and initial tests, Trivy vulnerabilities check
 
 ### Kubernetes Integration
-- [ ] **Step 6**: k8s.io/client-go to list Kubernetes deployment resources in default namespace, auth via kubeconfig, list cli command
+- [x] **Step 6**: k8s.io/client-go to list Kubernetes deployment resources in default namespace, auth via kubeconfig, list cli command
 - [ ] **Step 6+**: Add create/delete command
 - [ ] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
 - [ ] **Step 7+**: add custom logic function for update/delete events using informers cache search

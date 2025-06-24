@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/roman-povoroznyk/k6s/cmd"
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd"
 )
 
 func main() {

@@ -144,9 +144,9 @@ jobs:
           BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           GO_VERSION=$(go version | cut -d " " -f 3)
 
-          go build -ldflags "-X github.com/roman-povoroznyk/k6s/cmd.Version=${VERSION} \
-            -X github.com/roman-povoroznyk/k6s/cmd.BuildTime=${BUILD_TIME} \
-            -X github.com/roman-povoroznyk/k6s/cmd.GoVersion=${GO_VERSION}" \
+          go build -ldflags "-X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.Version=${VERSION} \
+            -X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.BuildTime=${BUILD_TIME} \
+            -X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.GoVersion=${GO_VERSION}" \
             -o bin/k6s .
 
       - name: Upload artifacts

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/roman-povoroznyk/k6s/pkg/logger"
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/logger"
 	"github.com/valyala/fasthttp"
 )
 
