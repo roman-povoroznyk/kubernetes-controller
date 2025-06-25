@@ -69,16 +69,18 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Push Docker image
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
         run: docker push ghcr.io/${{ github.repository }}:${{ steps.vars.outputs.docker_tag }}
 
       - name: Package Helm chart
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
         run: |
           helm package charts/k8s-ctrl --version ${{ steps.vars.outputs.version }} --app-version ${{ steps.vars.outputs.app_version }}
           mkdir -p chart-artifacts
           mv k8s-ctrl-${{ steps.vars.outputs.version }}.tgz chart-artifacts/
 
       - name: Upload Helm chart artifact
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: helm-chart
