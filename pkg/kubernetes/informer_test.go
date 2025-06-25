@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 // TestEventHandler implements DeploymentEventHandler for testing
 type TestEventHandler struct {
+	mu             sync.RWMutex
 	OnAddCalled    bool
 	OnUpdateCalled bool
 	OnDeleteCalled bool
@@ -18,18 +20,48 @@ type TestEventHandler struct {
 }
 
 func (h *TestEventHandler) OnAdd(obj *appsv1.Deployment) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.OnAddCalled = true
 	h.LastDeployment = obj
 }
 
 func (h *TestEventHandler) OnUpdate(oldObj, newObj *appsv1.Deployment) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.OnUpdateCalled = true
 	h.LastDeployment = newObj
 }
 
 func (h *TestEventHandler) OnDelete(obj *appsv1.Deployment) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.OnDeleteCalled = true
 	h.LastDeployment = obj
+}
+
+func (h *TestEventHandler) GetOnAddCalled() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.OnAddCalled
+}
+
+func (h *TestEventHandler) GetOnUpdateCalled() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.OnUpdateCalled
+}
+
+func (h *TestEventHandler) GetOnDeleteCalled() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.OnDeleteCalled
+}
+
+func (h *TestEventHandler) GetLastDeployment() *appsv1.Deployment {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.LastDeployment
 }
 
 func TestNewDeploymentInformer(t *testing.T) {

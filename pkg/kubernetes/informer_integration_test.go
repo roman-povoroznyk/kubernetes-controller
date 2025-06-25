@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -29,12 +30,19 @@ func TestInformerIntegration(t *testing.T) {
 var _ = ginkgo.BeforeSuite(func() {
 	ginkgo.By("bootstrapping test environment")
 	
-	// Use system envtest binaries
-	envtestBinPath := "/Users/rpovoroznyk/Library/Application Support/io.kubebuilder.envtest/k8s/1.31.0-darwin-arm64"
+	// Use default envtest behavior which should work with installed binaries
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{},
 		ErrorIfCRDPathMissing: false,
-		BinaryAssetsDirectory: envtestBinPath,
+		// Use KUBEBUILDER_ASSETS env var if set, otherwise use default discovery
+		UseExistingCluster: func() *bool {
+			// Only use existing cluster if explicitly set
+			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+				val := true
+				return &val
+			}
+			return nil
+		}(),
 	}
 
 	var err error
@@ -157,10 +165,12 @@ var _ = ginkgo.Describe("DeploymentInformer", func() {
 
 			// Wait for event
 			gomega.Eventually(func() bool {
-				return eventHandler.OnAddCalled
+				return eventHandler.GetOnAddCalled()
 			}, 10*time.Second, 100*time.Millisecond).Should(gomega.BeTrue())
 
-			gomega.Expect(eventHandler.LastDeployment.Name).To(gomega.Equal("test-deployment"))
+			lastDep := eventHandler.GetLastDeployment()
+			gomega.Expect(lastDep).NotTo(gomega.BeNil())
+			gomega.Expect(lastDep.Name).To(gomega.Equal("test-deployment"))
 		})
 
 		ginkgo.It("should list deployments from cache", func() {
@@ -217,7 +227,7 @@ var _ = ginkgo.Describe("DeploymentInformer", func() {
 
 			// Wait for add event
 			gomega.Eventually(func() bool {
-				return eventHandler.OnAddCalled
+				return eventHandler.GetOnAddCalled()
 			}, 10*time.Second, 100*time.Millisecond).Should(gomega.BeTrue())
 
 			// Delete deployment
@@ -230,7 +240,7 @@ var _ = ginkgo.Describe("DeploymentInformer", func() {
 
 			// Wait for delete event
 			gomega.Eventually(func() bool {
-				return eventHandler.OnDeleteCalled
+				return eventHandler.GetOnDeleteCalled()
 			}, 10*time.Second, 100*time.Millisecond).Should(gomega.BeTrue())
 		})
 
@@ -248,7 +258,7 @@ var _ = ginkgo.Describe("DeploymentInformer", func() {
 
 			// Wait for add event
 			gomega.Eventually(func() bool {
-				return eventHandler.OnAddCalled
+				return eventHandler.GetOnAddCalled()
 			}, 10*time.Second, 100*time.Millisecond).Should(gomega.BeTrue())
 
 			// Update deployment
@@ -262,10 +272,12 @@ var _ = ginkgo.Describe("DeploymentInformer", func() {
 
 			// Wait for update event
 			gomega.Eventually(func() bool {
-				return eventHandler.OnUpdateCalled
+				return eventHandler.GetOnUpdateCalled()
 			}, 10*time.Second, 100*time.Millisecond).Should(gomega.BeTrue())
 
-			gomega.Expect(*eventHandler.LastDeployment.Spec.Replicas).To(gomega.Equal(int32(2)))
+			lastDep := eventHandler.GetLastDeployment()
+			gomega.Expect(lastDep).NotTo(gomega.BeNil())
+			gomega.Expect(*lastDep.Spec.Replicas).To(gomega.Equal(int32(2)))
 		})
 	})
 

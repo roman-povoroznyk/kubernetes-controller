@@ -22,6 +22,7 @@ var (
 	deployWatch           bool
 	deployWatchResync     time.Duration
 	deployNamespace       string
+	deployCustomLogic     bool
 )
 
 // deploymentCmd represents the deployment command group
@@ -52,7 +53,12 @@ var deploymentListCmd = &cobra.Command{
 
 		if deployWatch {
 			// Watch mode using informer
-			informer := kubernetes.NewDeploymentInformer(client.Clientset(), namespace, deployWatchResync)
+			var informer *kubernetes.DeploymentInformer
+			if deployCustomLogic {
+				informer = kubernetes.NewDeploymentInformerWithCustomLogic(client.Clientset(), namespace, deployWatchResync)
+			} else {
+				informer = kubernetes.NewDeploymentInformer(client.Clientset(), namespace, deployWatchResync)
+			}
 
 			err = informer.Start()
 			if err != nil {
@@ -156,6 +162,7 @@ func init() {
 	deploymentListCmd.Flags().BoolVarP(&deployAllNamespaces, "all-namespaces", "A", false, "List deployments across all namespaces")
 	deploymentListCmd.Flags().StringVarP(&deployNamespace, "namespace", "n", "default", "Kubernetes namespace")
 	deploymentListCmd.Flags().BoolVarP(&deployWatch, "watch", "w", false, "Watch for changes")
+	deploymentListCmd.Flags().BoolVar(&deployCustomLogic, "custom-logic", false, "Use custom logic for analyzing deployment events (only used with --watch)")
 	deploymentListCmd.Flags().DurationVar(&deployWatchResync, "resync-period", 30*time.Second, "Resync period for the informer (only used with --watch)")
 	deploymentListCmd.Flags().StringVar(&deployKubeconfig, "kubeconfig", "", "Path to kubeconfig file")
 

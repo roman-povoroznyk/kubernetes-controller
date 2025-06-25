@@ -186,6 +186,47 @@ func NewDeploymentInformerWithKubectlStyle(clientset kubernetes.Interface, names
 	return di
 }
 
+// NewDeploymentInformerWithCustomLogic creates a new deployment informer with custom logic handler
+func NewDeploymentInformerWithCustomLogic(clientset kubernetes.Interface, namespace string, resyncPeriod time.Duration) *DeploymentInformer {
+	if resyncPeriod == 0 {
+		resyncPeriod = 30 * time.Second
+	}
+
+	if namespace == "" {
+		namespace = metav1.NamespaceAll
+	}
+
+	listWatcher := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return clientset.AppsV1().Deployments(namespace).List(context.TODO(), options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return clientset.AppsV1().Deployments(namespace).Watch(context.TODO(), options)
+		},
+	}
+
+	informer := cache.NewSharedIndexInformer(
+		listWatcher,
+		&appsv1.Deployment{},
+		resyncPeriod,
+		cache.Indexers{},
+	)
+
+	di := &DeploymentInformer{
+		clientset:    clientset,
+		informer:     informer,
+		namespace:    namespace,
+		resyncPeriod: resyncPeriod,
+		stopper:      make(chan struct{}),
+		started:      false,
+	}
+
+	// Add custom logic event handler instead of default
+	di.AddEventHandler(NewCustomLogicEventHandler(di))
+
+	return di
+}
+
 // AddEventHandler adds an event handler to the informer
 func (di *DeploymentInformer) AddEventHandler(handler DeploymentEventHandler) {
 	di.mu.Lock()

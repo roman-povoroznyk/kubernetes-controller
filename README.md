@@ -50,6 +50,10 @@ k6s deployment list --all-namespaces
 k6s deployment list --watch
 k6s deployment list --watch --namespace=prod
 
+# Watch with custom logic for detailed change analysis
+k6s deployment list --watch --custom-logic
+k6s deployment list --watch --custom-logic --namespace=prod
+
 # Create deployments
 k6s deployment create my-app --image=nginx --replicas=3
 k6s deployment create api --image=httpd:alpine --replicas=1 --namespace=prod
@@ -72,6 +76,50 @@ kubectl port-forward svc/k6s 8080:8080
 curl http://localhost:8080/health
 ```
 
+## Custom Logic for Deployment Analysis
+
+The `--custom-logic` flag provides advanced analysis of deployment changes when watching events. It uses the informer's cache to compare previous and current states and provides detailed insights about what changed.
+
+### Features
+
+- **Detailed Change Analysis**: Tracks specific fields that changed (replicas, image, labels, resources, strategy)
+- **Cache-based Comparison**: Uses informer cache to compare old vs new deployment states
+- **Rich Logging**: Provides structured logs with change details including old/new values
+- **Event Context**: Shows creation timestamps, generation changes, and cache status
+
+### Usage Examples
+
+```bash
+# Basic watch mode (shows standard deployment events)
+k6s deployment list --watch
+
+# Advanced watch with custom logic analysis
+k6s deployment list --watch --custom-logic
+
+# Custom logic with specific namespace
+k6s deployment list --watch --custom-logic --namespace=production
+
+# Watch all namespaces with custom analysis
+k6s deployment list --watch --custom-logic --all-namespaces
+```
+
+### Custom Logic Output
+
+When using `--custom-logic`, you'll see additional structured logs for each deployment event:
+
+```json
+// ADD event
+{"level":"info","namespace":"default","name":"my-app","replicas":3,"handler":"custom_logic","message":"Deployment added with custom analysis"}
+
+// UPDATE event with detailed changes
+{"level":"debug","namespace":"default","name":"my-app","change_type":"spec","field":"replicas","old_value":3,"new_value":5,"description":"Replicas changed from 3 to 5","message":"Deployment change detail"}
+{"level":"debug","namespace":"default","name":"my-app","change_type":"spec","field":"containers[0].image","old_value":"nginx:1.14","new_value":"nginx:1.16","description":"Container my-app image changed from nginx:1.14 to nginx:1.16","message":"Deployment change detail"}
+{"level":"info","namespace":"default","name":"my-app","handler":"custom_logic","changes_count":2,"change_types":["spec","spec"],"change_fields":["replicas","containers[0].image"],"message":"Deployment updated with custom analysis"}
+
+// DELETE event
+{"level":"info","namespace":"default","name":"my-app","handler":"custom_logic","cache_status":"not_found","message":"Deployment deleted with custom analysis"}
+```
+
 ## Development Roadmap
 
 ### Core Infrastructure
@@ -87,7 +135,7 @@ curl http://localhost:8080/health
 - [x] **Step 6**: k8s.io/client-go to list Kubernetes deployment resources in default namespace, auth via kubeconfig, list cli command
 - [x] **Step 6+**: Add create/delete command, refactor command structure to kubectl-like deployment subcommands
 - [x] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
-- [ ] **Step 7+**: add custom logic function for update/delete events using informers cache search
+- [x] **Step 7+**: add custom logic function for update/delete events using informers cache search
 - [ ] **Step 7++**: use config to setup informers start configuration
 - [ ] **Step 8**: json api handler to request list deployment resources in informer cache storage
 
@@ -113,6 +161,45 @@ curl http://localhost:8080/health
 ### Observability & Quality
 - [ ] **Step 15**: basic OpenTelemetry code instrumentation
 - [ ] **Step 15++**: 90% test coverage
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+go test -v ./...
+
+# Run tests with race detection
+go test -v -race ./...
+
+# Run specific package tests
+go test -v ./pkg/kubernetes/
+
+# Run with coverage
+go test -v -race -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+### Troubleshooting
+
+#### envtest Issues on macOS
+
+If you encounter `etcd: no such file or directory` errors when running integration tests:
+
+```bash
+# Install setup-envtest tool
+go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+# Download and setup required binaries
+setup-envtest use -p path
+
+# Set environment variable and run tests
+export KUBEBUILDER_ASSETS="$(setup-envtest use -p path)"
+go test -v ./pkg/kubernetes/
+```
+
+The integration tests use envtest to run a local Kubernetes API server for testing informers and controllers.
 
 ## License
 
