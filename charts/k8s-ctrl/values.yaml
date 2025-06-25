@@ -1,0 +1,52 @@
+image:
+  repository: ghcr.io/rpovoroznyk/k8s-ctrl
+  tag: "0.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+env:
+  LOG_LEVEL: info
+
+args: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 5
+
+volumeMounts: []
+volumes: []
+
+service:
+  name: http
+  type: ClusterIP
+  port: 80
+  protocol: TCP
+  targetPort: 8080
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}

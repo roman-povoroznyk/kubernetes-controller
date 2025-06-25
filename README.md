@@ -20,7 +20,7 @@ git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
 cd kubernetes-controller
 
 # Build the binary
-go build -o k8s-ctrl main.go
+make build
 ```
 
 ## Usage
@@ -51,6 +51,13 @@ go build -o k8s-ctrl main.go
 ./k8s-ctrl server --server-port 8080 --log-level debug
 ```
 
+### Version information
+
+```bash
+# Display version
+./k8s-ctrl version
+```
+
 ### Available Endpoints
 
 - `GET /health` - Health check endpoint that returns "OK"
@@ -58,6 +65,25 @@ go build -o k8s-ctrl main.go
 - All other paths return a 404 Not Found response
 
 ## Development
+
+### Makefile Commands
+
+```bash
+# Build the binary
+make build
+
+# Run all tests
+make test
+
+# Generate code coverage report
+make coverage
+
+# Build Docker image
+make docker-build
+
+# Clean up artifacts
+make clean
+```
 
 ### Running Tests
 
@@ -72,6 +98,17 @@ go test ./internal/server/...
 go test -cover ./...
 ```
 
+### Docker Container
+
+
+```bash
+# Build Docker image
+make docker-build
+
+# Run container
+docker run -p 8080:8080 k8s-ctrl:latest
+```
+
 ### Project Structure
 
 ```
@@ -82,8 +119,9 @@ go test -cover ./...
 │   │   ├── delete.go        # Pod deletion command
 │   │   └── list.go          # Pod listing command
 │   ├── server/              # HTTP server command
-│   └── root.go              # Root CLI command
-├── internal/                # Internal logic
+│   ├── root.go              # Root CLI command
+│   └── version.go           # Version command
+├── internal/                # Internal logic (not importable by external packages)
 │   ├── kubernetes/          # Kubernetes operations
 │   │   └── pods.go          # Pod-related operations
 │   └── server/              # HTTP server
@@ -91,15 +129,28 @@ go test -cover ./...
 │       │   └── logging.go   # Request logging middleware
 │       ├── handler.go       # HTTP request handlers
 │       └── server.go        # FastHTTP server
+├── .github/workflows/       # CI/CD pipelines
+│   └── ci.yml               # GitHub Actions workflow
+├── Dockerfile               # Distroless container definition
+├── Makefile                 # Build automation
 └── main.go                  # Entry point
 ```
 
 ## Key Components
 
-- **FastHTTP Server**: High-performance HTTP server with middleware support
-- **Request Logging**: Detailed logging with unique request IDs for traceability
-- **Kubernetes Client**: Client-go based Kubernetes API interactions
 - **Cobra CLI**: Command-line interface for user interaction
+- **Distroless Container**: Minimal, secure container image
+- **FastHTTP Server**: High-performance HTTP server with middleware support
+- **Kubernetes Client**: Client-go based Kubernetes API interactions
+- **Request Logging**: Detailed logging with unique request IDs for traceability
+
+## Environment Variables
+
+### All command-line flags can also be set via environment variables:
+
+- K8S_CTRL_KUBECONFIG - Path to kubeconfig file (equivalent to --kubeconfig)
+- K8S_CTRL_LOG_LEVEL - Log level (equivalent to --log-level)
+- K8S_CTRL_SERVER_PORT - HTTP server port (equivalent to --server-port)
 
 ## License
 
