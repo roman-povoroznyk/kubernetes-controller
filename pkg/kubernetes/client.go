@@ -37,3 +37,8 @@ func NewClient(kubeconfig string) (*Client, error) {
 
 	return &Client{clientset: clientset}, nil
 }
+
+// Clientset returns the underlying kubernetes clientset
+func (c *Client) Clientset() kubernetes.Interface {
+	return c.clientset
+}

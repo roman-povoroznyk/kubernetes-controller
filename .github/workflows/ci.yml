@@ -122,7 +122,7 @@ jobs:
             CHART_VERSION="${{ github.ref_name }}"
             CHART_VERSION="${CHART_VERSION#chart-}"
             # Find latest app version
-            APP_VERSION=$(git describe --tags --match='v*' --exclude='chart-*' --abbrev=0 2>/dev/null || echo "v0.6.1")
+            APP_VERSION=$(git describe --tags --match='v*' --exclude='chart-*' --abbrev=0 2>/dev/null || echo "v0.7.0")
             echo "Chart-only release: chart=${CHART_VERSION}, app=${APP_VERSION}"
           else
             # Development build (master branch or PR)
@@ -261,7 +261,7 @@ jobs:
           if [[ "$TAG_NAME" == chart-* ]]; then
             # Chart-only release
             CHART_VERSION="${TAG_NAME#chart-}"
-            APP_VERSION=$(git describe --tags --match='v*' --exclude='chart-*' --abbrev=0 2>/dev/null || echo "v0.6.1")
+            APP_VERSION=$(git describe --tags --match='v*' --exclude='chart-*' --abbrev=0 2>/dev/null || echo "v0.7.0")
             RELEASE_TYPE="chart"
             echo "Chart-only release: chart=${CHART_VERSION}, app=${APP_VERSION}"
           else

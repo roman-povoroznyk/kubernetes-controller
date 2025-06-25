@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/kubernetes"
 	"github.com/spf13/cobra"
@@ -15,6 +19,9 @@ var (
 	deployCreateReplicas  int32
 	deployCreateNamespace string
 	deployDeleteNamespace string
+	deployWatch           bool
+	deployWatchResync     time.Duration
+	deployNamespace       string
 )
 
 // deploymentCmd represents the deployment command group
@@ -29,7 +36,7 @@ var deploymentCmd = &cobra.Command{
 var deploymentListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List Kubernetes deployments",
-	Long:  `List Kubernetes deployments in the specified namespace or all namespaces.`,
+	Long:  `List Kubernetes deployments in the specified namespace or all namespaces. Use --watch to monitor for changes.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		client, err := kubernetes.NewClient(deployKubeconfig)
 		if err != nil {
@@ -38,18 +45,39 @@ var deploymentListCmd = &cobra.Command{
 		}
 
 		// Determine namespace
-		namespace := "default"
+		namespace := deployNamespace
 		if deployAllNamespaces {
 			namespace = ""
 		}
 
-		deployments, err := client.DeploymentList(namespace)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error listing deployments: %v\n", err)
-			os.Exit(1)
-		}
+		if deployWatch {
+			// Watch mode using informer
+			informer := kubernetes.NewDeploymentInformer(client.Clientset(), namespace, deployWatchResync)
 
-		kubernetes.DeploymentPrint(deployments.Items, deployAllNamespaces)
+			err = informer.Start()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error starting informer: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Set up signal handling
+			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer cancel()
+
+			// Wait for interrupt signal
+			<-ctx.Done()
+
+			informer.Stop()
+		} else {
+			// Regular list mode
+			deployments, err := client.DeploymentList(namespace)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error listing deployments: %v\n", err)
+				os.Exit(1)
+			}
+
+			kubernetes.DeploymentPrint(deployments.Items, deployAllNamespaces)
+		}
 	},
 }
 
@@ -126,6 +154,9 @@ func init() {
 
 	// List command flags
 	deploymentListCmd.Flags().BoolVarP(&deployAllNamespaces, "all-namespaces", "A", false, "List deployments across all namespaces")
+	deploymentListCmd.Flags().StringVarP(&deployNamespace, "namespace", "n", "default", "Kubernetes namespace")
+	deploymentListCmd.Flags().BoolVarP(&deployWatch, "watch", "w", false, "Watch for changes")
+	deploymentListCmd.Flags().DurationVar(&deployWatchResync, "resync-period", 30*time.Second, "Resync period for the informer (only used with --watch)")
 	deploymentListCmd.Flags().StringVar(&deployKubeconfig, "kubeconfig", "", "Path to kubeconfig file")
 
 	// Create command flags

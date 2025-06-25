@@ -46,6 +46,10 @@ k6s version
 k6s deployment list
 k6s deployment list --all-namespaces
 
+# Watch deployments for changes (shows logs for events)
+k6s deployment list --watch
+k6s deployment list --watch --namespace=prod
+
 # Create deployments
 k6s deployment create my-app --image=nginx --replicas=3
 k6s deployment create api --image=httpd:alpine --replicas=1 --namespace=prod
@@ -82,7 +86,7 @@ curl http://localhost:8080/health
 ### Kubernetes Integration
 - [x] **Step 6**: k8s.io/client-go to list Kubernetes deployment resources in default namespace, auth via kubeconfig, list cli command
 - [x] **Step 6+**: Add create/delete command, refactor command structure to kubectl-like deployment subcommands
-- [ ] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
+- [x] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
 - [ ] **Step 7+**: add custom logic function for update/delete events using informers cache search
 - [ ] **Step 7++**: use config to setup informers start configuration
 - [ ] **Step 8**: json api handler to request list deployment resources in informer cache storage

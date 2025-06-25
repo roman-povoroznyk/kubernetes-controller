@@ -9,6 +9,11 @@ GO_VERSION=$(shell go version | cut -d " " -f 3)
 LDFLAGS=-ldflags "-X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.Version=$(VERSION) \
 	-X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.GoVersion=$(GO_VERSION)"
 
+# Envtest variables
+ENVTEST_K8S_VERSION = 1.31.0
+ENVTEST_BIN_DIR = $(shell pwd)/bin/k8s
+ENVTEST = $(shell pwd)/bin/setup-envtest
+
 # Default target
 .DEFAULT_GOAL := help
 
@@ -63,6 +68,19 @@ test-coverage:
 	@echo "Running tests with coverage..."
 	@go test -v -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
+
+# Envtest targets
+envtest: install-envtest
+	@echo "Running envtest integration tests..."
+	@KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path --bin-dir $(ENVTEST_BIN_DIR))" go test -v ./pkg/kubernetes/informer_integration_test.go ./pkg/kubernetes/informer.go ./pkg/kubernetes/informer_test.go
+
+install-envtest:
+	@echo "Installing envtest..."
+	@test -f $(ENVTEST) || (mkdir -p bin && GOBIN=$(shell pwd)/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+
+setup-envtest: install-envtest
+	@echo "Setting up envtest binaries..."
+	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(ENVTEST_BIN_DIR)
 
 # Code quality
 lint:
@@ -143,3 +161,26 @@ helm-test:
 helm-uninstall:
 	@echo "Uninstalling Helm chart..."
 	@helm uninstall k6s
+
+# Envtest targets
+setup-envtest:
+	@echo "Setting up envtest..."
+	@mkdir -p $(ENVTEST_BIN_DIR)
+	@curl -L -o $(ENVTEST_BIN_DIR)/kubectl https://dl.k8s.io/release/v$(ENVTEST_K8S_VERSION)/bin/linux/amd64/kubectl
+	@chmod +x $(ENVTEST_BIN_DIR)/kubectl
+	@curl -L -o $(ENVTEST_BIN_DIR)/kube-apiserver https://dl.k8s.io/release/v$(ENVTEST_K8S_VERSION)/bin/linux/amd64/kube-apiserver
+	@chmod +x $(ENVTEST_BIN_DIR)/kube-apiserver
+	@curl -L -o $(ENVTEST_BIN_DIR)/kube-controller-manager https://dl.k8s.io/release/v$(ENVTEST_K8S_VERSION)/bin/linux/amd64/kube-controller-manager
+	@chmod +x $(ENVTEST_BIN_DIR)/kube-controller-manager
+	@curl -L -o $(ENVTEST_BIN_DIR)/kube-scheduler https://dl.k8s.io/release/v$(ENVTEST_K8S_VERSION)/bin/linux/amd64/kube-scheduler
+	@chmod +x $(ENVTEST_BIN_DIR)/kube-scheduler
+	@curl -L -o $(ENVTEST_BIN_DIR)/kubectl-proxy https://dl.k8s.io/release/v$(ENVTEST_K8S_VERSION)/bin/linux/amd64/kubectl-proxy
+	@chmod +x $(ENVTEST_BIN_DIR)/kubectl-proxy
+	@curl -L -o $(ENVTEST_BIN_DIR)/etcd https://dl.k8s.io/etcd-release/etcd-v$(ENVTEST_K8S_VERSION)-linux-amd64.tar.gz
+	@tar -xzf $(ENVTEST_BIN_DIR)/etcd -C $(ENVTEST_BIN_DIR) --strip-components=1
+	@chmod +x $(ENVTEST_BIN_DIR)/etcd
+	@echo "Envtest setup complete."
+
+envtest: setup-envtest
+	@echo "Running envtest..."
+	@KUBEVIRT_VERSION=$(KUBEVIRT_VERSION) ./bin/$(BINARY_NAME) test --kubeconfig $(ENVTEST_KUBECONFIG) --provider=envtest --log-level debug
