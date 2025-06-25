@@ -4,20 +4,24 @@ on:
   push:
     branches: [ "main", "feature/**" ]
     paths:
+      - 'Dockerfile'
       - '**.go'
       - '**.mod'
       - '**.sum'
       - 'cmd/**'
       - 'internal/**'
+      - 'charts/**'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [ "main" ]
     paths:
+      - 'Dockerfile'
       - '**.go'
       - '**.mod'
       - '**.sum'
       - 'cmd/**'
       - 'internal/**'
+      - 'charts/**'
       - '.github/workflows/ci.yml'
 
 jobs:
