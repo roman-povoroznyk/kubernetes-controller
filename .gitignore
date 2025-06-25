@@ -1,5 +1,5 @@
 # Binaries
-k8s-ctrl
+/k8s-ctrl
 *.exe
 *.exe~
 *.dll
