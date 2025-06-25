@@ -1,10 +1,7 @@
-// Package informer provides Kubernetes resource informers for watching
-// and caching Kubernetes resources using client-go.
 package informer
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -14,110 +11,113 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"kubernetes-controller/pkg/business"
 )
 
-// DeploymentInformer wraps a deployment informer with additional functionality
+// DeploymentInformer wraps Kubernetes deployment informer
 type DeploymentInformer struct {
-	informer cache.SharedIndexInformer
-	stopCh   chan struct{}
+	clientset   kubernetes.Interface
+	informer    cache.SharedIndexInformer
+	config      *InformerConfig
+	ruleEngine  *business.RuleEngine
 }
 
-// NewDeploymentInformer creates a new deployment informer for the specified namespace
-func NewDeploymentInformer(clientset *kubernetes.Clientset, namespace string) *DeploymentInformer {
-	// Create factory with options
+// NewDeploymentInformer creates a new deployment informer with config
+func NewDeploymentInformer(clientset kubernetes.Interface, config *InformerConfig) *DeploymentInformer {
+	if !config.IsResourceEnabled("deployments") {
+		log.Info().Msg("Deployments informer is disabled by configuration")
+		return nil
+	}
+
 	factory := informers.NewSharedInformerFactoryWithOptions(
 		clientset,
-		30*time.Second, // Resync period
-		informers.WithNamespace(namespace),
-		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			options.FieldSelector = fields.Everything().String()
-		}),
+		config.ResyncPeriod,
+		informers.WithNamespace(metav1.NamespaceAll),
 	)
 
-	// Get deployment informer
 	informer := factory.Apps().V1().Deployments().Informer()
+	
+	di := &DeploymentInformer{
+		clientset:  clientset,
+		informer:   informer,
+		config:     config,
+		ruleEngine: business.NewRuleEngine(),
+	}
 
 	// Add event handlers
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			deployment := obj.(*appsv1.Deployment)
-			log.Info().
-				Str("name", deployment.Name).
-				Str("namespace", deployment.Namespace).
-				Int32("replicas", *deployment.Spec.Replicas).
-				Msg("Deployment added")
-		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			oldDeployment := oldObj.(*appsv1.Deployment)
-			newDeployment := newObj.(*appsv1.Deployment)
-			
-			log.Info().
-				Str("name", newDeployment.Name).
-				Str("namespace", newDeployment.Namespace).
-				Int32("old_replicas", *oldDeployment.Spec.Replicas).
-				Int32("new_replicas", *newDeployment.Spec.Replicas).
-				Msg("Deployment updated")
-		},
-		DeleteFunc: func(obj interface{}) {
-			deployment := obj.(*appsv1.Deployment)
-			log.Info().
-				Str("name", deployment.Name).
-				Str("namespace", deployment.Namespace).
-				Msg("Deployment deleted")
-		},
+		AddFunc:    di.onAdd,
+		UpdateFunc: di.onUpdate,
+		DeleteFunc: di.onDelete,
 	})
 
-	return &DeploymentInformer{
-		informer: informer,
-		stopCh:   make(chan struct{}),
-	}
+	return di
 }
 
-// Start starts the informer and waits for cache sync
+// Start starts the informer
 func (di *DeploymentInformer) Start(ctx context.Context) error {
-	log.Info().Msg("Starting deployment informer")
+	if di == nil {
+		return nil
+	}
 
-	// Start the informer
-	go di.informer.Run(di.stopCh)
+	log.Info().Msg("Starting deployment informer...")
+	
+	go di.informer.Run(ctx.Done())
 
 	// Wait for cache to sync
 	if !cache.WaitForCacheSync(ctx.Done(), di.informer.HasSynced) {
-		close(di.stopCh)
-		return fmt.Errorf("failed to wait for cache sync")
+		return fmt.Errorf("failed to sync deployment informer cache")
 	}
 
-	log.Info().Msg("Deployment informer cache synced successfully")
-
-	// Wait for context cancellation
-	<-ctx.Done()
-	close(di.stopCh)
-	log.Info().Msg("Deployment informer stopped")
-
+	log.Info().Msg("Deployment informer cache synced")
 	return nil
 }
 
-// GetDeployments returns all deployments from the informer cache
-func (di *DeploymentInformer) GetDeployments() []*appsv1.Deployment {
-	var deployments []*appsv1.Deployment
+func (di *DeploymentInformer) onAdd(obj interface{}) {
+	deployment := obj.(*appsv1.Deployment)
 	
-	for _, obj := range di.informer.GetStore().List() {
-		if deployment, ok := obj.(*appsv1.Deployment); ok {
-			deployments = append(deployments, deployment)
-		}
+	if !di.config.IsNamespaceWatched(deployment.Namespace) {
+		return
 	}
-	
-	return deployments
+
+	log.Info().
+		Str("name", deployment.Name).
+		Str("namespace", deployment.Namespace).
+		Msg("Deployment added")
+
+	// Validate business rules
+	if err := di.ruleEngine.ValidateDeployment(deployment); err != nil {
+		log.Error().Err(err).Msg("Business rule validation failed for new deployment")
+	}
 }
 
-// GetDeploymentNames returns names of all deployments from the informer cache
-func (di *DeploymentInformer) GetDeploymentNames() []string {
-	var names []string
+func (di *DeploymentInformer) onUpdate(oldObj, newObj interface{}) {
+	deployment := newObj.(*appsv1.Deployment)
 	
-	for _, obj := range di.informer.GetStore().List() {
-		if deployment, ok := obj.(*appsv1.Deployment); ok {
-			names = append(names, deployment.Name)
-		}
+	if !di.config.IsNamespaceWatched(deployment.Namespace) {
+		return
 	}
+
+	log.Info().
+		Str("name", deployment.Name).
+		Str("namespace", deployment.Namespace).
+		Msg("Deployment updated")
+
+	// Validate business rules
+	if err := di.ruleEngine.ValidateDeployment(deployment); err != nil {
+		log.Error().Err(err).Msg("Business rule validation failed for updated deployment")
+	}
+}
+
+func (di *DeploymentInformer) onDelete(obj interface{}) {
+	deployment := obj.(*appsv1.Deployment)
 	
-	return names
+	if !di.config.IsNamespaceWatched(deployment.Namespace) {
+		return
+	}
+
+	log.Info().
+		Str("name", deployment.Name).
+		Str("namespace", deployment.Namespace).
+		Msg("Deployment deleted")
 }
