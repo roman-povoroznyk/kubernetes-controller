@@ -11,7 +11,7 @@ on:
       - 'cmd/**'
       - 'internal/**'
       - 'charts/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/ci.yaml'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -22,7 +22,7 @@ on:
       - 'cmd/**'
       - 'internal/**'
       - 'charts/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/ci.yaml'
 
 jobs:
   build:
