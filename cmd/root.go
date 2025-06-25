@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Version = "v0.7.0"
+var Version = "v0.7.1"
 var logLevel string
 
 // rootCmd represents the base command when called without any subcommands

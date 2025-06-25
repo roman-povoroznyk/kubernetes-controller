@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/roman-povoroznyk/k6s
   pullPolicy: IfNotPresent
-  tag: "0.7.0"
+  tag: "0.7.1"
 
 imagePullSecrets: []
 nameOverride: ""
