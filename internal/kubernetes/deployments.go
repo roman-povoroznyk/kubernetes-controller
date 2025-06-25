@@ -1,19 +1,67 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// CreateDeployment creates a simple nginx deployment
+func CreateDeployment(clientset kubernetes.Interface, namespace, name string) error {
+	log.Debug().Str("namespace", namespace).Str("name", name).Msg("Creating deployment via API")
+
+	replicas := int32(1)
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": name},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": name},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx:alpine",
+							Ports: []corev1.ContainerPort{
+								{ContainerPort: 80},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx, cancel := DefaultContext()
+	defer cancel()
+
+	_, err := clientset.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment %s: %w", name, err)
+	}
+	fmt.Printf("deployment/%s created\n", name)
+	return nil
+}
 
 // ListDeployments lists deployments in the given namespace
 func ListDeployments(clientset kubernetes.Interface, namespace string) error {
 	log.Debug().Str("namespace", namespace).Msg("Listing deployments")
 
-	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.Background(), metav1.ListOptions{})
+	ctx, cancel := DefaultContext()
+	defer cancel()
+
+	deployments, err := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list deployments: %w", err)
 	}
@@ -44,5 +92,20 @@ func ListDeployments(clientset kubernetes.Interface, namespace string) error {
 			age)
 	}
 
+	return nil
+}
+
+// DeleteDeployment deletes a deployment
+func DeleteDeployment(clientset kubernetes.Interface, namespace, name string) error {
+	log.Debug().Str("namespace", namespace).Str("name", name).Msg("Deleting deployment via API")
+
+	ctx, cancel := DefaultContext()
+	defer cancel()
+
+	err := clientset.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete deployment %s: %w", name, err)
+	}
+	fmt.Printf("deployment \"%s\" deleted\n", name)
 	return nil
 }

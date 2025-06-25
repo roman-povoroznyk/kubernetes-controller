@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -17,7 +16,7 @@ const defaultTimeout = 10 * time.Second
 func CreatePod(clientset kubernetes.Interface, namespace, podName string) error {
 	log.Debug().Str("namespace", namespace).Str("name", podName).Msg("Creating pod via API")
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := DefaultContext()
 	defer cancel()
 
 	pod := &corev1.Pod{
@@ -53,8 +52,7 @@ func CreatePod(clientset kubernetes.Interface, namespace, podName string) error 
 // DeletePod deletes the pod with the given name in the specified namespace
 func DeletePod(clientset kubernetes.Interface, namespace, podName string) error {
 	log.Debug().Str("namespace", namespace).Str("name", podName).Msg("Deleting pod via API")
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := DefaultContext()
 	defer cancel()
 
 	err := clientset.CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
@@ -71,7 +69,7 @@ func DeletePod(clientset kubernetes.Interface, namespace, podName string) error 
 func ListPods(clientset kubernetes.Interface, namespace string) error {
 	log.Debug().Str("namespace", namespace).Msg("Listing pods via API")
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := DefaultContext()
 	defer cancel()
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
@@ -119,19 +117,4 @@ func countRestarts(pod corev1.Pod) int32 {
 		restarts += containerStatus.RestartCount
 	}
 	return restarts
-}
-
-// formatAge formats the pod age into a human-readable string
-func formatAge(creationTime time.Time) string {
-	age := time.Since(creationTime)
-
-	if age < time.Minute {
-		return fmt.Sprintf("%ds", int(age.Seconds()))
-	} else if age < time.Hour {
-		return fmt.Sprintf("%dm", int(age.Minutes()))
-	} else if age < 24*time.Hour {
-		return fmt.Sprintf("%dh", int(age.Hours()))
-	} else {
-		return fmt.Sprintf("%dd", int(age.Hours()/24))
-	}
 }

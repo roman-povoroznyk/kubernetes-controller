@@ -40,11 +40,14 @@ make build
 # Create a pod
 ./k8s-ctrl create pod nginx-pod
 
+# Create a deployment
+./k8s-ctrl create deployment nginx-deployment
+
 # Delete a pod
 ./k8s-ctrl delete pod nginx-pod
 
-# Set log level
-./k8s-ctrl list pod --log-level debug
+# Delete a deployment
+./k8s-ctrl delete deployment nginx-deployment
 ```
 
 ### HTTP Server
@@ -119,27 +122,34 @@ docker run -p 8080:8080 k8s-ctrl:latest
 
 ```
 .
-├── cmd/                     # CLI commands
-│   ├── kubernetes/          # Kubernetes interaction commands
-│   │   ├── create.go        # Pod creation command
-│   │   ├── delete.go        # Pod deletion command
-│   │   └── list.go          # Pod listing command
-│   ├── server/              # HTTP server command
-│   ├── root.go              # Root CLI command
-│   └── version.go           # Version command
-├── internal/                # Internal logic (not importable by external packages)
-│   ├── kubernetes/          # Kubernetes operations
-│   │   └── pods.go          # Pod-related operations
-│   └── server/              # HTTP server
-│       ├── middleware/      # HTTP middleware
-│       │   └── logging.go   # Request logging middleware
-│       ├── handler.go       # HTTP request handlers
-│       └── server.go        # FastHTTP server
-├── .github/workflows/       # CI/CD pipelines
-│   └── ci.yml               # GitHub Actions workflow
-├── Dockerfile               # Distroless container definition
-├── Makefile                 # Build automation
-└── main.go                  # Entry point
+├── cmd/                         # CLI commands
+│   ├── kubernetes/              # Kubernetes interaction commands
+│   │   ├── create.go            # Pod/Deployment creation command
+│   │   ├── delete.go            # Pod/Deployment deletion command
+│   │   └── list.go              # Pod/Deployment listing command
+│   ├── server/                  # HTTP server command
+│   ├── root.go                  # Root CLI command
+│   └── version.go               # Version command
+├── internal/                    # Internal logic (not importable by external packages)
+│   ├── kubernetes/              # Kubernetes operations
+│   │   ├── pods.go              # Pod-related operations
+│   │   ├── pods_test.go         # Pod operation tests
+│   │   ├── deployments.go       # Deployment-related operations
+│   │   ├── deployments_test.go  # Deployment operation tests
+│   │   ├── util.go              # Shared utility functions
+│   │   └── util_test.go         # Utility function tests (if present)
+│   └── server/                  # HTTP server
+│       ├── middleware/
+│       │   ├── logging.go       # Request logging middleware
+│       │   └── logging_test.go  # Middleware tests
+│       ├── handler.go           # HTTP request handlers
+│       └── server.go            # FastHTTP server
+│       └── server_test.go       # Server tests
+├── .github/workflows/           # CI/CD pipelines
+│   └── ci.yaml                  # GitHub Actions workflow
+├── Dockerfile                   # Distroless container definition
+├── Makefile                     # Build automation
+└── main.go                      # Entry point
 ```
 
 ## Key Components
