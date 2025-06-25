@@ -61,13 +61,24 @@ build-all: build build-linux
 
 # Test targets
 test:
-	@echo "Running tests..."
+	@echo "Running unit tests..."
 	@go test -v ./...
+
+test-integration:
+	@echo "Running integration tests..."
+	@KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path --bin-dir $(ENVTEST_BIN_DIR))" go test -v -tags=integration ./pkg/kubernetes/
+
+test-all: test test-integration
 
 test-coverage:
 	@echo "Running tests with coverage..."
 	@go test -v -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
+
+test-coverage-integration:
+	@echo "Running all tests with coverage..."
+	@go test -v -coverprofile=coverage-unit.out ./...
+	@KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path --bin-dir $(ENVTEST_BIN_DIR))" go test -v -tags=integration -coverprofile=coverage-integration.out ./pkg/kubernetes/
 
 # Envtest targets
 envtest: install-envtest

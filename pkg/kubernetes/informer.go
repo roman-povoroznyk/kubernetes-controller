@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/config"
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -223,6 +224,89 @@ func NewDeploymentInformerWithCustomLogic(clientset kubernetes.Interface, namesp
 
 	// Add custom logic event handler instead of default
 	di.AddEventHandler(NewCustomLogicEventHandler(di))
+
+	return di
+}
+
+// NewDeploymentInformerWithConfig creates a new deployment informer using configuration
+func NewDeploymentInformerWithConfig(clientset kubernetes.Interface, cfg *config.InformerConfig) *DeploymentInformer {
+	if cfg == nil {
+		cfg = &config.DefaultConfig().Informer
+	}
+
+	namespace := cfg.Namespace
+	if namespace == "" {
+		namespace = metav1.NamespaceAll
+	}
+
+	resyncPeriod := cfg.ResyncPeriod
+	if resyncPeriod == 0 {
+		resyncPeriod = 30 * time.Second
+	}
+
+	// Create list/watch functions with optional selectors
+	listWatcher := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			if cfg.LabelSelector != "" {
+				options.LabelSelector = cfg.LabelSelector
+			}
+			if cfg.FieldSelector != "" {
+				options.FieldSelector = cfg.FieldSelector
+			}
+			return clientset.AppsV1().Deployments(namespace).List(context.TODO(), options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			if cfg.LabelSelector != "" {
+				options.LabelSelector = cfg.LabelSelector
+			}
+			if cfg.FieldSelector != "" {
+				options.FieldSelector = cfg.FieldSelector
+			}
+			return clientset.AppsV1().Deployments(namespace).Watch(context.TODO(), options)
+		},
+	}
+
+	informer := cache.NewSharedIndexInformer(
+		listWatcher,
+		&appsv1.Deployment{},
+		resyncPeriod,
+		cache.Indexers{},
+	)
+
+	di := &DeploymentInformer{
+		clientset:    clientset,
+		informer:     informer,
+		namespace:    namespace,
+		resyncPeriod: resyncPeriod,
+		stopper:      make(chan struct{}),
+		started:      false,
+	}
+
+	// Add event handlers based on configuration
+	if cfg.KubectlStyle {
+		di.AddEventHandler(&KubectlStyleEventHandler{})
+	} else {
+		di.AddEventHandler(&DefaultDeploymentEventHandler{})
+	}
+
+	// Add custom logic handler if enabled
+	if cfg.EnableCustomLogic {
+		analyzer := NewDeploymentChangeAnalyzer(di)
+		customHandler := NewCustomLogicEventHandler(di)
+		customHandler.analyzer = analyzer
+		di.AddEventHandler(customHandler)
+	}
+
+	log.Debug().
+		Str("namespace", namespace).
+		Dur("resync_period", resyncPeriod).
+		Str("label_selector", cfg.LabelSelector).
+		Str("field_selector", cfg.FieldSelector).
+		Bool("kubectl_style", cfg.KubectlStyle).
+		Bool("custom_logic", cfg.EnableCustomLogic).
+		Int("worker_pool_size", cfg.WorkerPoolSize).
+		Int("queue_size", cfg.QueueSize).
+		Msg("Created deployment informer with configuration")
 
 	return di
 }

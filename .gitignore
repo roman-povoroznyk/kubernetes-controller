@@ -63,3 +63,12 @@ temp/
 charts/*.tgz
 !charts/k6s/
 index.yaml
+
+# Test configuration files
+test-config.yaml
+*-test.yaml
+*.test.yaml
+
+# Local configuration files (use config.yaml.example as template)
+k6s.yaml
+config.yaml

@@ -52,13 +52,23 @@ var deploymentListCmd = &cobra.Command{
 		}
 
 		if deployWatch {
-			// Watch mode using informer
-			var informer *kubernetes.DeploymentInformer
-			if deployCustomLogic {
-				informer = kubernetes.NewDeploymentInformerWithCustomLogic(client.Clientset(), namespace, deployWatchResync)
-			} else {
-				informer = kubernetes.NewDeploymentInformer(client.Clientset(), namespace, deployWatchResync)
+			// Get configuration for informer
+			cfg := GetConfig()
+			informerConfig := cfg.Informer
+			
+			// Override config values with command line flags if provided
+			if deployNamespace != "default" {
+				informerConfig.Namespace = namespace
 			}
+			if deployCustomLogic {
+				informerConfig.EnableCustomLogic = true
+			}
+			if deployWatchResync != 30*time.Second {
+				informerConfig.ResyncPeriod = deployWatchResync
+			}
+
+			// Watch mode using informer with config
+			informer := kubernetes.NewDeploymentInformerWithConfig(client.Clientset(), &informerConfig)
 
 			err = informer.Start()
 			if err != nil {

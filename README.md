@@ -120,6 +120,133 @@ When using `--custom-logic`, you'll see additional structured logs for each depl
 {"level":"info","namespace":"default","name":"my-app","handler":"custom_logic","cache_status":"not_found","message":"Deployment deleted with custom analysis"}
 ```
 
+## Configuration
+
+k6s supports configuration via YAML config files, environment variables, and command-line flags. Configuration is loaded in the following order of precedence (highest to lowest):
+
+1. Command-line flags
+2. Environment variables (with `K6S_` prefix)
+3. Configuration file
+4. Default values
+
+### Configuration File
+
+Create a configuration file to customize informer behavior:
+
+```bash
+# Create config directory
+mkdir -p ~/.k6s
+
+# Copy an example configuration
+cp examples/config/basic.yaml ~/.k6s/k6s.yaml
+
+# Or create your own config file
+cat > ~/.k6s/k6s.yaml << EOF
+# k6s Configuration
+informer:
+  resync_period: "5m"
+  namespace: "production"
+  enable_custom_logic: true
+  label_selector: "app=web"
+  worker_pool_size: 3
+  queue_size: 50
+
+watch:
+  poll_interval: "500ms"
+  timeout: "15s"
+  max_retries: 5
+
+log_level: "debug"
+EOF
+```
+
+See [examples/config/](examples/config/) for more configuration examples including:
+- `basic.yaml` - Minimal configuration for getting started
+- `production.yaml` - Optimized for production environments
+- `development.yaml` - Verbose settings for local development
+- `multi-namespace.yaml` - Balanced multi-namespace monitoring
+- `config.yaml.example` - Complete reference with all options
+
+### Configuration Options
+
+#### Informer Configuration
+
+- `resync_period`: How often to fully resync the informer cache (default: "10m")
+- `namespace`: Kubernetes namespace to watch (empty = all namespaces)
+- `enable_custom_logic`: Enable detailed change analysis for deployment events
+- `label_selector`: Filter deployments by labels (e.g., "app=web,tier=frontend")
+- `field_selector`: Filter deployments by fields (e.g., "metadata.namespace=default")
+- `worker_pool_size`: Number of workers for processing events (default: 5)
+- `queue_size`: Size of the event queue (default: 100)
+
+#### Watch Configuration
+
+- `poll_interval`: Polling interval for watch mode (default: "1s")
+- `timeout`: Timeout for watch operations (default: "30s")
+- `max_retries`: Maximum retries for failed operations (default: 3)
+- `retry_backoff`: Backoff duration between retries (default: "2s")
+
+### Usage with Configuration
+
+```bash
+# Use specific config file
+k6s --config /path/to/config.yaml deployment list --watch
+
+# Use default config locations (~/.k6s/k6s.yaml, /etc/k6s/k6s.yaml)
+k6s deployment list --watch
+
+# Override config with environment variables
+K6S_INFORMER_NAMESPACE=production k6s deployment list --watch
+
+# Override config with command-line flags
+k6s deployment list --watch --namespace=staging --custom-logic
+
+# Combine config file with overrides
+k6s --config custom.yaml deployment list --watch --log-level=trace
+```
+
+### Environment Variables
+
+All configuration options can be set via environment variables using the `K6S_` prefix:
+
+```bash
+export K6S_LOG_LEVEL=debug
+export K6S_INFORMER_NAMESPACE=production
+export K6S_INFORMER_ENABLE_CUSTOM_LOGIC=true
+export K6S_INFORMER_RESYNC_PERIOD=5m
+export K6S_WATCH_POLL_INTERVAL=500ms
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run unit tests only
+go test -v ./...
+make test
+
+# Run tests with race detection
+go test -v -race ./...
+
+# Run specific package tests
+go test -v ./pkg/kubernetes/
+
+# Run with coverage
+go test -v -race -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+make test-coverage
+
+# Run integration tests (requires envtest setup)
+make test-integration
+
+# Run all tests (unit + integration)
+make test-all
+
+# Run all tests with coverage
+make test-coverage-integration
+```
+
 ## Development Roadmap
 
 ### Core Infrastructure
@@ -136,7 +263,7 @@ When using `--custom-logic`, you'll see additional structured logs for each depl
 - [x] **Step 6+**: Add create/delete command, refactor command structure to kubectl-like deployment subcommands
 - [x] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
 - [x] **Step 7+**: add custom logic function for update/delete events using informers cache search
-- [ ] **Step 7++**: use config to setup informers start configuration
+- [x] **Step 7++**: use config to setup informers start configuration
 - [ ] **Step 8**: json api handler to request list deployment resources in informer cache storage
 
 ### Controller Runtime
@@ -161,25 +288,6 @@ When using `--custom-logic`, you'll see additional structured logs for each depl
 ### Observability & Quality
 - [ ] **Step 15**: basic OpenTelemetry code instrumentation
 - [ ] **Step 15++**: 90% test coverage
-
-## Development
-
-### Running Tests
-
-```bash
-# Run all tests
-go test -v ./...
-
-# Run tests with race detection
-go test -v -race ./...
-
-# Run specific package tests
-go test -v ./pkg/kubernetes/
-
-# Run with coverage
-go test -v -race -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-```
 
 ### Troubleshooting
 

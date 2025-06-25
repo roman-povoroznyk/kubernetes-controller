@@ -36,8 +36,19 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out ./...
+      - name: Set up envtest binaries
+        run: |
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          setup-envtest use --print-path 1.27.1
+
+      - name: Run unit tests
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Run integration tests
+        run: |
+          export KUBEBUILDER_ASSETS=$(setup-envtest use --print-path 1.27.1)
+          go test -v -race -tags=integration ./pkg/kubernetes/
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
