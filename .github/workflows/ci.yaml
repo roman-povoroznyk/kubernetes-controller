@@ -3,26 +3,8 @@ name: CI
 on:
   push:
     branches: [ "main", "feature/**" ]
-    paths:
-      - 'Dockerfile'
-      - '**.go'
-      - '**.mod'
-      - '**.sum'
-      - 'cmd/**'
-      - 'internal/**'
-      - 'charts/**'
-      - '.github/workflows/ci.yaml'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'Dockerfile'
-      - '**.go'
-      - '**.mod'
-      - '**.sum'
-      - 'cmd/**'
-      - 'internal/**'
-      - 'charts/**'
-      - '.github/workflows/ci.yaml'
 
 jobs:
   build:
