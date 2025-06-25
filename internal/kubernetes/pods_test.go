@@ -73,7 +73,4 @@ func TestListPods(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-
-	// We can't easily test the output as it's logged
-	// A more testable design would return the pods and let the caller log them
 }

@@ -23,9 +23,20 @@ var listPodCmd = &cobra.Command{
 	},
 }
 
+var listDeploymentCmd = &cobra.Command{
+	Use:   "deployment",
+	Short: "List deployments",
+	Run: func(c *cobra.Command, args []string) {
+		if err := kubernetes.ListDeployments(cmd.Clientset, listNamespace); err != nil {
+			cmd.HandleError(err, "Failed to list deployments")
+		}
+	},
+}
+
 func init() {
 	listCmd.PersistentFlags().StringVarP(&listNamespace, "namespace", "n", "default", "Namespace")
 	listCmd.AddCommand(listPodCmd)
+	listCmd.AddCommand(listDeploymentCmd)
 
 	cmd.RootCmd.AddCommand(listCmd)
 }

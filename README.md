@@ -31,6 +31,12 @@ make build
 # List pods
 ./k8s-ctrl list pod
 
+# List deployments
+./k8s-ctrl list deployment
+
+# List resources in specific namespace
+./k8s-ctrl list deployment -n kube-system
+
 # Create a pod
 ./k8s-ctrl create pod nginx-pod
 
