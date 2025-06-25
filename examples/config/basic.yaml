@@ -1,0 +1,13 @@
+# Basic k6s Configuration
+# Minimal configuration for getting started
+
+# Log level
+log_level: "info"
+
+# Informer configuration
+informer:
+  # Watch default namespace only
+  namespace: "default"
+  
+  # Resync every 5 minutes
+  resync_period: "5m"

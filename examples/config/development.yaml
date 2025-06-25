@@ -1,0 +1,39 @@
+# Development k6s Configuration
+# Configuration for local development and testing
+
+# Verbose logging for development
+log_level: "trace"
+
+# Informer configuration for development
+informer:
+  # Watch all namespaces to see everything
+  namespace: ""
+  
+  # Frequent resync for immediate feedback
+  resync_period: "30s"
+  
+  # Enable custom logic to understand changes
+  enable_custom_logic: true
+  
+  # Monitor development and testing deployments
+  label_selector: "environment in (dev,test,staging)"
+  
+  # Smaller pool for development
+  worker_pool_size: 2
+  
+  # Smaller queue for development
+  queue_size: 50
+
+# Watch configuration for development
+watch:
+  # Very fast polling for immediate feedback
+  poll_interval: "100ms"
+  
+  # Short timeout for quick iterations
+  timeout: "10s"
+  
+  # Fewer retries for faster failure feedback
+  max_retries: 2
+  
+  # Quick retry backoff
+  retry_backoff: "500ms"

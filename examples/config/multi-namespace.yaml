@@ -1,0 +1,39 @@
+# Multi-namespace k6s Configuration
+# Configuration for monitoring multiple namespaces with different settings
+
+# Balanced logging
+log_level: "info"
+
+# Informer configuration for multi-namespace monitoring
+informer:
+  # Watch all namespaces
+  namespace: ""
+  
+  # Moderate resync period
+  resync_period: "5m"
+  
+  # Enable custom logic for change tracking
+  enable_custom_logic: true
+  
+  # Monitor critical applications across namespaces
+  label_selector: "app.kubernetes.io/part-of in (platform,core,api)"
+  
+  # Balanced worker pool
+  worker_pool_size: 7
+  
+  # Moderate queue size
+  queue_size: 150
+
+# Watch configuration
+watch:
+  # Standard polling
+  poll_interval: "1s"
+  
+  # Standard timeout
+  timeout: "30s"
+  
+  # Standard retries
+  max_retries: 3
+  
+  # Standard backoff
+  retry_backoff: "2s"

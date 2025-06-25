@@ -1,0 +1,39 @@
+# Production k6s Configuration
+# Configuration suitable for production monitoring
+
+# Enable debug logging for detailed insights
+log_level: "debug"
+
+# Informer configuration optimized for production
+informer:
+  # Watch production namespace
+  namespace: "production"
+  
+  # More frequent resync for production monitoring
+  resync_period: "2m"
+  
+  # Enable custom logic for detailed change analysis
+  enable_custom_logic: true
+  
+  # Filter only web applications
+  label_selector: "tier=frontend,app.kubernetes.io/component=web"
+  
+  # Increase worker pool for high-traffic environments
+  worker_pool_size: 10
+  
+  # Larger queue for handling bursts
+  queue_size: 200
+
+# Watch configuration for production reliability
+watch:
+  # Faster polling for real-time monitoring
+  poll_interval: "500ms"
+  
+  # Shorter timeout for quick failure detection
+  timeout: "15s"
+  
+  # More retries for reliability
+  max_retries: 5
+  
+  # Faster retry backoff
+  retry_backoff: "1s"

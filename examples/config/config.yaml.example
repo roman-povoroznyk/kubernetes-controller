@@ -1,0 +1,45 @@
+# k6s Configuration File
+# This is an example configuration file for k6s deployment informer
+
+# Informer configuration
+informer:
+  # How often to resync the entire cache (default: 10m)
+  resync_period: "10m"
+  
+  # Namespace to watch (empty means all namespaces)
+  namespace: ""
+  
+  # Enable custom logic for deployment change analysis
+  enable_custom_logic: false
+  
+  # Use kubectl-style output formatting
+  kubectl_style: false
+  
+  # Label selector to filter deployments (e.g., "app=web,tier=frontend")
+  label_selector: ""
+  
+  # Field selector to filter deployments (e.g., "metadata.namespace=default")
+  field_selector: ""
+  
+  # Number of workers for processing events
+  worker_pool_size: 5
+  
+  # Size of the event queue
+  queue_size: 100
+
+# Watch configuration
+watch:
+  # Polling interval for watch mode
+  poll_interval: "1s"
+  
+  # Timeout for watch operations
+  timeout: "30s"
+  
+  # Maximum number of retries for failed operations
+  max_retries: 3
+  
+  # Backoff duration between retries
+  retry_backoff: "2s"
+
+# Global log level (trace, debug, info, warn, error)
+log_level: "info"
