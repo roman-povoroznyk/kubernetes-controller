@@ -25,9 +25,22 @@ var deletePodCmd = &cobra.Command{
 	},
 }
 
+var deleteDeploymentCmd = &cobra.Command{
+	Use:   "deployment [name]",
+	Short: "Delete a deployment",
+	Args:  cobra.ExactArgs(1),
+	Run: func(c *cobra.Command, args []string) {
+		name := args[0]
+		if err := kubernetes.DeleteDeployment(cmd.Clientset, deleteNamespace, name); err != nil {
+			cmd.HandleError(err, "Failed to delete deployment")
+		}
+	},
+}
+
 func init() {
 	deleteCmd.PersistentFlags().StringVarP(&deleteNamespace, "namespace", "n", "default", "Namespace")
 	deleteCmd.AddCommand(deletePodCmd)
+	deleteCmd.AddCommand(deleteDeploymentCmd)
 
 	cmd.RootCmd.AddCommand(deleteCmd)
 }
