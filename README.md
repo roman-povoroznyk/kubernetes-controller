@@ -136,8 +136,7 @@ docker run -p 8080:8080 k8s-ctrl:latest
 │   │   ├── pods_test.go         # Pod operation tests
 │   │   ├── deployments.go       # Deployment-related operations
 │   │   ├── deployments_test.go  # Deployment operation tests
-│   │   ├── util.go              # Shared utility functions
-│   │   └── util_test.go         # Utility function tests (if present)
+│   │   └── util.go              # Shared utility functions
 │   └── server/                  # HTTP server
 │       ├── middleware/
 │       │   ├── logging.go       # Request logging middleware
