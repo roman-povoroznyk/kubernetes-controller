@@ -3,6 +3,7 @@ package informer
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -12,6 +13,12 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+)
+
+// Global pod informer instances for API access
+var (
+	podInformer cache.SharedIndexInformer
+	podMutex    sync.RWMutex
 )
 
 // PodInformerConfig holds configuration for the pod informer
@@ -40,6 +47,11 @@ func StartPodInformer(ctx context.Context, clientset *kubernetes.Clientset, conf
 	)
 
 	informer := factory.Core().V1().Pods().Informer()
+
+	// Store informer globally for API access
+	podMutex.Lock()
+	podInformer = informer
+	podMutex.Unlock()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -159,4 +171,61 @@ func getPodRestartCount(pod *corev1.Pod) int {
 		totalRestarts += int(containerStatus.RestartCount)
 	}
 	return totalRestarts
+}
+
+// API access functions
+
+// GetPodNames returns a slice of pod names from the informer's cache
+func GetPodNames() []string {
+	podMutex.RLock()
+	defer podMutex.RUnlock()
+
+	var names []string
+	if podInformer == nil {
+		return names
+	}
+
+	for _, obj := range podInformer.GetStore().List() {
+		if pod, ok := obj.(*corev1.Pod); ok {
+			names = append(names, pod.Name)
+		}
+	}
+	return names
+}
+
+// GetPods returns a slice of pods from the informer's cache
+func GetPods() []*corev1.Pod {
+	podMutex.RLock()
+	defer podMutex.RUnlock()
+
+	var pods []*corev1.Pod
+	if podInformer == nil {
+		return pods
+	}
+
+	for _, obj := range podInformer.GetStore().List() {
+		if pod, ok := obj.(*corev1.Pod); ok {
+			pods = append(pods, pod)
+		}
+	}
+	return pods
+}
+
+// GetPodByName returns a specific pod by name from the informer's cache
+func GetPodByName(name string) (*corev1.Pod, bool) {
+	podMutex.RLock()
+	defer podMutex.RUnlock()
+
+	if podInformer == nil {
+		return nil, false
+	}
+
+	for _, obj := range podInformer.GetStore().List() {
+		if pod, ok := obj.(*corev1.Pod); ok {
+			if pod.Name == name {
+				return pod, true
+			}
+		}
+	}
+	return nil, false
 }
