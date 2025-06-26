@@ -5,10 +5,13 @@ A lightweight command-line tool for interacting with Kubernetes clusters with a 
 ## Features
 
 - **Pod Management**: Create, delete, and list pods in a Kubernetes cluster
-- **High-Performance HTTP Server**: FastHTTP-based server with health endpoint
-- **Structured Logging**: Detailed request logging with unique request IDs
+- **Deployment Management**: Create, delete, and list deployments in a Kubernetes cluster
+- **Deployment Informer**: Real-time monitoring of deployment events with structured logging
+- **High-Performance HTTP Server**: FastHTTP-based server with health endpoint and informer integration
+- **Structured Logging**: Detailed request logging with unique request IDs and event tracking
 - **Graceful Shutdown**: Clean shutdown with configurable timeout
 - **kubectl-like Output**: Familiar output format for Kubernetes operations
+- **Flexible Authentication**: Support for both kubeconfig and in-cluster authentication
 
 ## Installation
 
@@ -48,16 +51,40 @@ make build
 
 # Delete a deployment
 ./k8s-ctrl delete deployment nginx-deployment
+
+# Watch deployment events (with kubeconfig)
+./k8s-ctrl watch deployment -n default
+
+# Watch pod events (with kubeconfig)
+./k8s-ctrl watch pod -n default
+
+# Watch deployment events (in-cluster mode)
+./k8s-ctrl watch deployment --in-cluster
+
+# Watch with custom resync period
+./k8s-ctrl watch deployment --resync-period 60s
+
+# Watch pods in specific namespace
+./k8s-ctrl watch pod -n kube-system
 ```
 
 ### HTTP Server
 
 ```bash
-# Start HTTP server on port 8080
+# Start HTTP server on port 8080 with deployment informer
 ./k8s-ctrl server --server-port 8080
 
-# Start with detailed logging
-./k8s-ctrl server --server-port 8080 --log-level debug
+# Start with detailed logging and custom namespace
+./k8s-ctrl server --server-port 8080 --log-level debug --namespace kube-system
+
+# Start with in-cluster authentication (for running inside Kubernetes)
+./k8s-ctrl server --in-cluster --namespace default
+
+# Start with in-cluster authentication and selective informers
+./k8s-ctrl server --in-cluster --namespace default --enable-deployment-informer --no-enable-pod-informer
+
+# Start with custom kubeconfig and only pod informer
+./k8s-ctrl server --kubeconfig /path/to/config --enable-pod-informer --no-enable-deployment-informer
 ```
 
 ### Version information
@@ -73,6 +100,10 @@ make build
 - `GET /` - Welcome page with a greeting message
 - All other paths return a 404 Not Found response
 
+The server automatically starts deployment and pod informers (configurable) that monitor Kubernetes events in real-time and log them with structured JSON format including:
+- **Deployment events**: Creation, updates, and deletion events with replica counts, status changes, container images, generation and namespace details
+- **Pod events**: Pod lifecycle events (creation, updates, deletion) with phase changes, readiness status, restart counts, and node assignments
+
 ## Development
 
 ### Makefile Commands
@@ -86,6 +117,21 @@ make test
 
 # Generate code coverage report
 make coverage
+
+# Run tests with envtest (recommended for Kubernetes controller tests)
+make test
+
+# Run tests with coverage and export to XML
+make test-coverage
+
+# Set up envtest environment
+make envtest
+
+# Format code
+make format
+
+# Run linter (requires golangci-lint)
+make lint
 
 # Build Docker image
 make docker-build
@@ -114,8 +160,10 @@ go test -cover ./...
 # Build Docker image
 make docker-build
 
-# Run container
-docker run -p 8080:8080 k8s-ctrl:latest
+# Run container with kubeconfig mounted
+docker run -p 8080:8080 \
+  -v ~/.kube/config:/root/.kube/config:ro \
+  k8s-ctrl:latest server --kubeconfig /root/.kube/config
 ```
 
 ### Project Structure
@@ -126,11 +174,18 @@ docker run -p 8080:8080 k8s-ctrl:latest
 │   ├── kubernetes/              # Kubernetes interaction commands
 │   │   ├── create.go            # Pod/Deployment creation command
 │   │   ├── delete.go            # Pod/Deployment deletion command
-│   │   └── list.go              # Pod/Deployment listing command
+│   │   ├── list.go              # Pod/Deployment listing command
+│   │   └── watch.go             # Watch deployments and pods for events
 │   ├── server/                  # HTTP server command
 │   ├── root.go                  # Root CLI command
 │   └── version.go               # Version command
 ├── internal/                    # Internal logic (not importable by external packages)
+│   ├── informer/                # Kubernetes informers
+│   │   ├── deployments_informer.go      # Deployment informer implementation
+│   │   ├── deployments_informer_test.go # Deployment informer tests
+│   │   ├── pods_informer.go             # Pod informer implementation
+│   │   ├── pods_informer_test.go        # Pod informer tests
+│   │   └── interface.go         # Informer interfaces and manager
 │   ├── kubernetes/              # Kubernetes operations
 │   │   ├── pods.go              # Pod-related operations
 │   │   ├── pods_test.go         # Pod operation tests
@@ -151,21 +206,28 @@ docker run -p 8080:8080 k8s-ctrl:latest
 └── main.go                      # Entry point
 ```
 
-## Key Components
-
-- **Cobra CLI**: Command-line interface for user interaction
-- **Distroless Container**: Minimal, secure container image
-- **FastHTTP Server**: High-performance HTTP server with middleware support
-- **Kubernetes Client**: Client-go based Kubernetes API interactions
-- **Request Logging**: Detailed logging with unique request IDs for traceability
-
 ## Environment Variables
 
 ### All command-line flags can also be set via environment variables:
 
-- K8S_CTRL_KUBECONFIG - Path to kubeconfig file (equivalent to --kubeconfig)
-- K8S_CTRL_LOG_LEVEL - Log level (equivalent to --log-level)
-- K8S_CTRL_SERVER_PORT - HTTP server port (equivalent to --server-port)
+- **K8S_CTRL_KUBECONFIG** - Path to kubeconfig file (equivalent to --kubeconfig)
+- **K8S_CTRL_LOG_LEVEL** - Log level (equivalent to --log-level)
+- **K8S_CTRL_SERVER_PORT** - HTTP server port (equivalent to --server-port)
+- **K8S_CTRL_IN_CLUSTER** - Use in-cluster authentication (equivalent to --in-cluster)
+- **K8S_CTRL_NAMESPACE** - Default namespace to watch (equivalent to --namespace)
+- **K8S_CTRL_RESYNC_PERIOD** - Informer resync period (equivalent to --resync-period)
+- **K8S_CTRL_ENABLE_DEPLOYMENT_INFORMER** - Enable deployment informer (equivalent to --enable-deployment-informer)
+- **K8S_CTRL_ENABLE_POD_INFORMER** - Enable pod informer (equivalent to --enable-pod-informer)
+
+## Key Components
+
+- **Cobra CLI**: Command-line interface for user interaction
+- **Distroless Container**: Minimal, secure container image
+- **FastHTTP Server**: High-performance HTTP server with middleware support and informer integration
+- **Kubernetes Client**: Client-go based Kubernetes API interactions with flexible authentication
+- **Deployment Informer**: Real-time monitoring of Kubernetes deployment events
+- **Request Logging**: Detailed logging with unique request IDs for traceability
+- **Envtest Support**: Comprehensive testing with Kubernetes API server simulation
 
 ## License
 
