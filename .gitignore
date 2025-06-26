@@ -10,6 +10,11 @@
 /build/
 /bin/
 
+# Test artifacts
+coverage.out
+coverage.xml
+report.xml
+
 # Go modules
 vendor/
 
