@@ -184,3 +184,4 @@ func (c *Client) DeleteDeployment(ctx context.Context, namespace, name string) e
 
 	return nil
 }
+# Kubernetes integration
