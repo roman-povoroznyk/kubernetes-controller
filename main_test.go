@@ -59,3 +59,4 @@ func TestCLICommands(t *testing.T) {
 		t.Error("Server help output should not be empty")
 	}
 }
+# Testing improvements
