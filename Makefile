@@ -9,7 +9,7 @@ LOCALBIN ?= $(shell pwd)/bin
 # Tool Binaries
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
-.PHONY: all build test test-coverage envtest format lint run docker-build clean
+.PHONY: all build test test-unit test-coverage test-coverage-unit envtest format lint run docker-build clean
 
 all: build
 
@@ -33,17 +33,24 @@ build:
 
 test: envtest
 	go install gotest.tools/gotestsum@latest
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use --bin-dir $(LOCALBIN) -p path)" gotestsum --junitfile report.xml --format testname ./...
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use --bin-dir $(LOCALBIN) -p path)" gotestsum --junitfile report.xml --format testname -- -tags integration ./...
+
+test-unit:
+	go install gotest.tools/gotestsum@latest
+	gotestsum --junitfile report.xml --format testname ./...
 
 test-coverage: envtest
 	go install github.com/boumenot/gocover-cobertura@latest
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use --bin-dir $(LOCALBIN) -p path)" go test -coverprofile=coverage.out -covermode=count ./...
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use --bin-dir $(LOCALBIN) -p path)" go test -tags integration -coverprofile=coverage.out -covermode=count ./...
+
+test-coverage-unit:
+	go install github.com/boumenot/gocover-cobertura@latest
+	go test -coverprofile=coverage.out -covermode=count ./...
 	go tool cover -func=coverage.out
 	gocover-cobertura < coverage.out > coverage.xml
 
-# Quick local coverage check - opens HTML report in browser
-coverage: envtest
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use --bin-dir $(LOCALBIN) -p path)" go test -coverprofile=coverage.out ./...
+coverage:
+	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out
 
 run:

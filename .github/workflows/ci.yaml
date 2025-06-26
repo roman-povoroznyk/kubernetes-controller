@@ -37,13 +37,20 @@ jobs:
       - name: Build
         run: make build
 
-      - name: Test
+      - name: Test (Unit Tests)
+        run: make test-unit
+
+      - name: Install test dependencies
+        run: |
+          # Install kubebuilder test assets using our Makefile
+          make envtest
+
+      - name: Test (Integration Tests)
         run: make test
 
       - name: Generate code coverage
         run: |
-          go test -coverprofile=coverage.out ./...
-          go tool cover -func=coverage.out
+          make test-coverage-unit
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
