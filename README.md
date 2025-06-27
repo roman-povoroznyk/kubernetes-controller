@@ -18,36 +18,6 @@ A Kubernetes CLI tool and HTTP server for managing resources with real-time even
 - **Performance**: FastHTTP server with optimized handlers and connection pooling
 - **Production Ready**: Comprehensive error handling, resource management, and deployment automation
 
-## Quick Start
-
-```bash
-# Install and build
-git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
-cd kubernetes-controller
-make build
-
-# List deployments
-./k8s-ctrl list deployment
-
-# Start HTTP server with event monitoring
-./k8s-ctrl server --server-port 8080 --metrics-port 8081
-
-# Start with leader election for production
-./k8s-ctrl server --enable-leader-election --enable-controller
-
-# Check server health
-curl http://localhost:8080/health
-
-# Check controller metrics
-curl http://localhost:8081/metrics
-
-# Query deployments via REST API
-curl http://localhost:8080/deployments
-
-# Query pods via REST API
-curl http://localhost:8080/pods
-```
-
 ## Installation
 
 ### From Source
@@ -83,61 +53,6 @@ docker run -p 8080:8080 -p 8081:8081 \
 ```bash
 # Deploy to Kubernetes
 helm install k8s-ctrl ./charts/k8s-ctrl
-
-# Deploy with custom values for production
-helm install k8s-ctrl ./charts/k8s-ctrl \
-  --set replicaCount=3 \
-  --set env.LOG_LEVEL=info \
-  --set resources.requests.cpu=200m \
-  --set resources.requests.memory=256Mi
-
-# Build and deploy local Docker image in minikube
-make docker-build
-minikube image load k8s-ctrl:latest
-helm upgrade k8s-ctrl ./charts/k8s-ctrl --set image.pullPolicy=Never
-```
-
-## Production Deployment
-
-### ✅ Verified Production Features
-
-- **High Availability**: Leader election support for multi-replica deployments
-- **Health Monitoring**: `/health` endpoint with configurable liveness/readiness probes
-- **Metrics & Observability**: Prometheus metrics at `/metrics` (port 8081)
-- **Structured Logging**: JSON-formatted logs with configurable levels
-- **Graceful Shutdown**: SIGTERM handling and resource cleanup
-- **Resource Management**: Production-ready container limits and requests
-- **Error Handling**: Consistent JSON error responses across all endpoints
-
-### Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check for liveness/readiness probes |
-| `/metrics` | GET | Prometheus metrics (port 8081) |
-| `/deployments` | GET | List all deployments |
-| `/deployments/names` | GET | Get deployment names only |
-| `/deployments/{name}` | GET | Get specific deployment |
-| `/pods` | GET | List all pods |
-| `/pods/names` | GET | Get pod names only |
-| `/pods/{name}` | GET | Get specific pod |
-
-### Testing the Deployment
-
-```bash
-# Port forward to access the service
-kubectl port-forward service/k8s-controller-k8s-ctrl 8080:8080
-
-# Test health endpoint
-curl http://localhost:8080/health
-
-# Test API endpoints
-curl http://localhost:8080/deployments
-curl http://localhost:8080/pods
-
-# Check metrics (separate port)
-kubectl port-forward service/k8s-controller-k8s-ctrl 8081:8081
-curl http://localhost:8081/metrics
 ```
 
 ## Usage
@@ -160,7 +75,6 @@ curl http://localhost:8081/metrics
 # Version information
 ./k8s-ctrl version
 ```
-
 ### HTTP Server
 
 ```bash
@@ -184,27 +98,48 @@ curl http://localhost:8081/metrics
 ./k8s-ctrl server --enable-leader-election=false
 ```
 
-### API Endpoints
+### Configuration
+
+The application supports configuration via command-line flags, environment variables, or config files:
 
 ```bash
-# Health check
-curl http://localhost:8080/health
+# Environment variables (K8S_CTRL_ prefix)
+export K8S_CTRL_LOG_LEVEL=debug
+export K8S_CTRL_SERVER_PORT=8080
+export K8S_CTRL_NAMESPACE=production
 
-# Resource information
-curl http://localhost:8080/deployments
-curl http://localhost:8080/deployments/names
-curl http://localhost:8080/pods
-curl http://localhost:8080/pods/names
-
-# Individual resources
-curl http://localhost:8080/deployments/nginx
-curl http://localhost:8080/pods/nginx-abc123-xyz
-
-# Controller metrics (when enabled)
-curl http://localhost:8081/metrics
+# Command-line flags
+./k8s-ctrl server --log-level debug --server-port 8080 --namespace production
 ```
 
+**Available Configuration:**
+- `--kubeconfig`: Path to kubeconfig file
+- `--log-level`: Logging level (trace, debug, info, warn, error)
+- `--server-port`: HTTP server port (default: 8080)
+- `--namespace`: Default namespace to watch (default: default)
+- `--in-cluster`: Use in-cluster authentication
+- `--enable-deployment-informer`: Enable deployment informer (default: true)
+- `--enable-pod-informer`: Enable pod informer (default: true)
+- `--enable-controller`: Enable controller-runtime controller (default: true)
+- `--resync-period`: Informer resync period (default: 10m)
+- `--enable-leader-election`: Enable leader election for high availability (default: true)
+- `--leader-election-namespace`: Namespace for leader election lease (default: default)
+- `--metrics-port`: Port for controller manager metrics (default: 8081)
+
 ## Event Monitoring
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check for liveness/readiness probes |
+| `/metrics` | GET | Prometheus metrics (port 8081) |
+| `/deployments` | GET | List all deployments |
+| `/deployments/names` | GET | Get deployment names only |
+| `/deployments/{name}` | GET | Get specific deployment |
+| `/pods` | GET | List all pods |
+| `/pods/names` | GET | Get pod names only |
+| `/pods/{name}` | GET | Get specific pod |
 
 The application includes a production-ready Kubernetes controller that watches for Deployment events and logs them with structured format:
 
@@ -367,34 +302,6 @@ make test | grep -v "PASS"
 6. Commit your changes: `git commit -m 'Add amazing feature'`
 7. Push to the branch: `git push origin feature/amazing-feature`
 8. Open a Pull Request
-
-### Configuration
-
-The application supports configuration via command-line flags, environment variables, or config files:
-
-```bash
-# Environment variables (K8S_CTRL_ prefix)
-export K8S_CTRL_LOG_LEVEL=debug
-export K8S_CTRL_SERVER_PORT=8080
-export K8S_CTRL_NAMESPACE=production
-
-# Command-line flags
-./k8s-ctrl server --log-level debug --server-port 8080 --namespace production
-```
-
-**Available Configuration:**
-- `--kubeconfig`: Path to kubeconfig file
-- `--log-level`: Logging level (trace, debug, info, warn, error)
-- `--server-port`: HTTP server port (default: 8080)
-- `--namespace`: Default namespace to watch (default: default)
-- `--in-cluster`: Use in-cluster authentication
-- `--enable-deployment-informer`: Enable deployment informer (default: true)
-- `--enable-pod-informer`: Enable pod informer (default: true)
-- `--enable-controller`: Enable controller-runtime controller (default: true)
-- `--resync-period`: Informer resync period (default: 10m)
-- `--enable-leader-election`: Enable leader election for high availability (default: true)
-- `--leader-election-namespace`: Namespace for leader election lease (default: default)
-- `--metrics-port`: Port for controller manager metrics (default: 8081)
 
 ## License
 
