@@ -14,11 +14,11 @@ A lightweight command-line tool for interacting with Kubernetes clusters with a 
 - **kubectl-like Output**: Familiar output format for Kubernetes operations
 - **Flexible Authentication**: Support for both kubeconfig and in-cluster authentication
 
-## Step 9: Controller Runtime Implementation
+## Controller Runtime Implementation
 
 ### Overview
 
-Step 9 introduces a proper Kubernetes controller using the `sigs.k8s.io/controller-runtime` library that:
+The project includes a proper Kubernetes controller using the `sigs.k8s.io/controller-runtime` library that:
 - Watches for Deployment events (CREATE, UPDATE, DELETE)
 - Logs each event with structured logging
 - Uses the reconcile pattern for robust event handling
@@ -46,16 +46,14 @@ The controller logs different types of events:
   - Resource version for tracking changes
   - Event type determination based on `ObservedGeneration`
 
-### Configuration and Usage
+### Configuration
 
 #### Server Flags
 
 New flag added to control the controller:
 - `--enable-controller`: Enable/disable the controller-runtime deployment controller (default: true)
 
-#### Integration with Existing System
-
-The controller runs alongside existing informers and can be enabled/disabled independently:
+#### Quick Start
 
 ```bash
 # Start server with controller-runtime enabled (default)
@@ -93,7 +91,7 @@ tail -f /var/log/k8s-ctrl.log | grep "deployment-controller"
 ```json
 {
   "level": "info",
-  "namespace": "default", 
+  "namespace": "default",
   "name": "nginx-deployment",
   "component": "deployment-controller",
   "created": "2025-06-27T12:00:00Z",
@@ -110,7 +108,7 @@ tail -f /var/log/k8s-ctrl.log | grep "deployment-controller"
 {
   "level": "info",
   "namespace": "default",
-  "name": "nginx-deployment", 
+  "name": "nginx-deployment",
   "component": "deployment-controller",
   "message": "Deployment DELETE event received"
 }
