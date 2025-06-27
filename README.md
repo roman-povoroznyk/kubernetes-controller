@@ -1,76 +1,127 @@
 # Kubernetes Controller
 
-A lightweight command-line tool for interacting with Kubernetes clusters with a high-performance HTTP server and controller-runtime implementation.
+[![CI](https://github.com/roman-povoroznyk/kubernetes-controller/actions/workflows/ci.yaml/badge.svg)](https://github.com/roman-povoroznyk/kubernetes-controller/actions/workflows/ci.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/roman-povoroznyk/kubernetes-controller)](https://goreportcard.com/report/github.com/roman-povoroznyk/kubernetes-controller)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A modern Kubernetes CLI tool and HTTP server for managing resources with real-time event monitoring using controller-runtime.
 
 ## Features
 
-- **Pod Management**: Create, delete, and list pods in a Kubernetes cluster
-- **Deployment Management**: Create, delete, and list deployments in a Kubernetes cluster
-- **Real-time Event Monitoring**: Watch deployment and pod events with structured logging
-- **Controller Runtime Integration**: Kubernetes controller using sigs.k8s.io/controller-runtime for robust event handling
-- **REST API Server**: High-performance HTTP endpoints for resource information
-- **Graceful Shutdown**: Clean shutdown with configurable timeout
-- **kubectl-like Output**: Familiar output format for Kubernetes operations
-- **Flexible Authentication**: Support for both kubeconfig and in-cluster authentication
+- **Resource Management**: Create, delete, and list pods and deployments
+- **Real-time Monitoring**: Watch Kubernetes events with structured logging
+- **Controller Runtime**: Production-ready event handling using `sigs.k8s.io/controller-runtime`
+- **REST API**: Query resource information via HTTP endpoints
+- **Multiple Authentication**: Supports kubeconfig files and in-cluster authentication
+- **Observability**: Structured logging with zerolog and unique request IDs
 
-## Controller Runtime Implementation
-
-### Overview
-
-The project includes a proper Kubernetes controller using the `sigs.k8s.io/controller-runtime` library that:
-- Watches for Deployment events (CREATE, UPDATE, DELETE)
-- Logs each event with structured logging
-- Uses the reconcile pattern for robust event handling
-- Runs alongside existing informers
-
-### Controller Structure
-
-The `DeploymentReconciler` implements the `reconcile.Reconciler` interface:
-
-```go
-type DeploymentReconciler struct {
-    client.Client
-    Scheme *runtime.Scheme
-}
-```
-
-### Event Detection and Logging
-
-The controller logs different types of events:
-
-- **DELETE events**: When a deployment is not found (404 error)
-- **CREATE/UPDATE events**: When a deployment exists, with detailed information:
-  - Creation timestamp
-  - Replica counts (desired vs ready vs available)
-  - Resource version for tracking changes
-  - Event type determination based on `ObservedGeneration`
-
-### Configuration
-
-#### Server Flags
-
-New flag added to control the controller:
-- `--enable-controller`: Enable/disable the controller-runtime deployment controller (default: true)
-
-#### Quick Start
+## Quick Start
 
 ```bash
-# Start server with controller-runtime enabled (default)
-./k8s-ctrl server --enable-controller=true
+# Install and build
+git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
+cd kubernetes-controller
+make build
 
-# Run without controller
-./k8s-ctrl server --enable-controller=false
+# List deployments
+./k8s-ctrl list deployment
 
-# Run with only controller (no informers)
-./k8s-ctrl server --enable-deployment-informer=false --enable-pod-informer=false
+# Start HTTP server with event monitoring
+./k8s-ctrl server --server-port 8080
 
-# View controller logs
-tail -f /var/log/k8s-ctrl.log | grep "deployment-controller"
+# Check server health
+curl http://localhost:8080/health
 ```
 
-### Event Examples
+## Installation
 
-#### CREATE Event Log
+### From Source
+
+```bash
+git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
+cd kubernetes-controller
+make build
+```
+
+### Using Docker
+
+```bash
+# Build image
+make docker-build
+
+# Run with mounted kubeconfig
+docker run -p 8080:8080 \
+  -v ~/.kube/config:/root/.kube/config:ro \
+  k8s-ctrl:latest server --kubeconfig /root/.kube/config
+```
+
+### Using Helm
+
+```bash
+# Deploy to Kubernetes
+helm install k8s-ctrl ./charts/k8s-ctrl
+```
+
+## Usage
+
+### CLI Commands
+
+```bash
+# Resource operations
+./k8s-ctrl list pod -n default
+./k8s-ctrl list deployment -n kube-system
+./k8s-ctrl create pod my-pod
+./k8s-ctrl create deployment my-app
+./k8s-ctrl delete pod my-pod
+./k8s-ctrl delete deployment my-app
+
+# Watch events (with informers)
+./k8s-ctrl watch deployment -n default
+./k8s-ctrl watch pod --resync-period 60s
+
+# Version information
+./k8s-ctrl version
+```
+
+### HTTP Server
+
+```bash
+# Basic server
+./k8s-ctrl server --server-port 8080
+
+# With custom configuration
+./k8s-ctrl server \
+  --server-port 8080 \
+  --log-level debug \
+  --namespace kube-system \
+  --enable-deployment-informer \
+  --enable-pod-informer
+
+# In-cluster mode (for Kubernetes deployment)
+./k8s-ctrl server --in-cluster --namespace default
+```
+
+### API Endpoints
+
+```bash
+# Health check
+curl http://localhost:8080/health
+
+# Resource information
+curl http://localhost:8080/deployments
+curl http://localhost:8080/deployments/names
+curl http://localhost:8080/pods
+curl http://localhost:8080/pods/names
+
+# Individual resources
+curl http://localhost:8080/deployments/nginx
+curl http://localhost:8080/pods/nginx-abc123-xyz
+```
+
+## Event Monitoring
+
+The application includes a production-ready Kubernetes controller that watches for Deployment events and logs them with structured format:
+
 ```json
 {
   "level": "info",
@@ -81,372 +132,76 @@ tail -f /var/log/k8s-ctrl.log | grep "deployment-controller"
   "replicas": 3,
   "ready_replicas": 0,
   "available_replicas": 0,
-  "generation": "1",
+  "generation": "123",
   "message": "Deployment CREATE event received"
 }
 ```
 
-#### UPDATE Event Log
-```json
-{
-  "level": "info",
-  "namespace": "default",
-  "name": "nginx-deployment",
-  "component": "deployment-controller",
-  "created": "2025-06-27T12:00:00Z",
-  "replicas": 5,
-  "ready_replicas": 3,
-  "available_replicas": 3,
-  "generation": "2",
-  "message": "Deployment UPDATE event received"
-}
+**Event Types:**
+- **CREATE**: New deployments (ObservedGeneration = 0)
+- **UPDATE**: Modified deployments (ObservedGeneration > 0)
+- **DELETE**: Removed deployments (resource not found)
+
+## Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  CLI Commands   │    │  HTTP Server     │    │   Controller    │
+│                 │    │                  │    │   Runtime       │
+│                 │    │                  │    │                 │
+│ • list          │    │ • REST API       │    │ • Event Watch   │
+│ • create        │────│ • Health checks  │────│ • Reconcile     │
+│ • delete        │    │ • Middleware     │    │ • Structured    │
+│ • watch         │    │ • Informers      │    │   Logging       │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                        ┌──────────────────┐
+                        │   Kubernetes     │
+                        │   API Server     │
+                        └──────────────────┘
 ```
 
-#### DELETE Event Log
-```json
-{
-  "level": "info",
-  "namespace": "default",
-  "name": "nginx-deployment",
-  "component": "deployment-controller",
-  "message": "Deployment DELETE event received"
-}
-```
+**Key Components:**
+- **CLI**: Cobra-based command interface with kubectl-like operations
+- **HTTP Server**: FastHTTP server with middleware and real-time endpoints
+- **Controller**: `sigs.k8s.io/controller-runtime` based Deployment controller
+- **Informers**: Real-time event watchers for deployments and pods
+- **Logging**: Structured logging with zerolog and contextual information
 
-### Implementation Details
+## Development
 
-#### Key Features
+### Prerequisites
 
-1. **Structured Logging**: Uses zerolog with contextual information
-2. **Safe Resource Access**: Handles nil pointer checks for optional fields
-3. **Event Type Detection**: Distinguishes between CREATE and UPDATE events
-4. **Error Handling**: Proper error handling with client.IgnoreNotFound()
-5. **Concurrency Control**: Configurable `MaxConcurrentReconciles`
+- Go 1.24+
+- Kubernetes cluster (local or remote)
+- kubectl configured
 
-#### Code Structure
-
-**Files Added/Modified:**
-
-1. **`internal/controller/deployment_controller.go`**: Main controller implementation
-2. **`internal/controller/deployment_controller_unit_test.go`**: Unit tests
-3. **`internal/controller/deployment_controller_test.go`**: Integration tests
-4. **`cmd/server/server.go`**: Updated to integrate controller-runtime manager
-
-#### Manager Integration
-
-The controller is integrated through the controller-runtime manager:
-
-```go
-mgr, err := ctrlruntime.NewManager(config, manager.Options{})
-if err := controller.AddDeploymentController(mgr); err != nil {
-    return err
-}
-
-go func() {
-    if err := mgr.Start(context.Background()); err != nil {
-        log.Error().Err(err).Msg("Manager exited with error")
-    }
-}()
-```
-
-### Testing
-
-#### Unit Tests
-
-- Test reconcile logic with fake clients
-- Test helper functions (getReplicaCount, getEventType)
-- Test error handling scenarios
-
-#### Integration Tests
-
-- Use envtest for real Kubernetes API interaction
-- Test CREATE, UPDATE, DELETE event flows
-- Verify controller startup and shutdown
-
-#### Running Tests
+### Building and Testing
 
 ```bash
-# Run all tests (unit + integration)
+# Build the application
+make build
+
+# Run all tests
 make test
 
 # Run only unit tests
 make test-unit
 
-# Run with coverage
-make test-coverage
-```
-
-### Best Practices Applied
-
-Based on analysis of reference implementations:
-
-1. **Minimal Reconcile Logic**: The reconciler focuses only on logging, following the "dummy reconciler" pattern
-2. **Structured Logging**: Consistent with zerolog usage throughout the project
-3. **Resource Safety**: Safe access to pointer fields with helper functions
-4. **Error Handling**: Proper use of `client.IgnoreNotFound()` for delete events
-5. **Manager Pattern**: Standard controller-runtime manager integration
-6. **Testability**: Comprehensive unit and integration tests
-
-### Comparison with Informers
-
-| Feature | Informers | Controller Runtime |
-|---------|-----------|-------------------|
-| Event Handling | Manual event handlers | Reconcile pattern |
-| Retries | Manual implementation | Built-in retry logic |
-| Error Handling | Custom logic | Standardized patterns |
-| Testing | Complex setup | envtest integration |
-| Concurrency | Manual coordination | Built-in rate limiting |
-| Standards | Custom implementation | Industry standard |
-
-The controller-runtime implementation provides a more robust and maintainable solution for Kubernetes event handling.
-
-### Future Enhancements
-
-Potential improvements for future iterations:
-
-1. **Pod Controller**: Add similar controller for Pod events
-2. **Metrics**: Add Prometheus metrics for controller events
-3. **Filtering**: Add label selectors or namespace filtering
-4. **Custom Resources**: Extend to watch custom resource types
-5. **Leader Election**: Add leader election for multi-replica deployments
-
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/roman-povoroznyk/kubernetes-controller.git
-
-# Change to the project directory
-cd kubernetes-controller
-
-# Build the binary
-make build
-```
-
-## Usage
-
-### Kubernetes Operations
-
-```bash
-# List pods
-./k8s-ctrl list pod
-
-# List deployments
-./k8s-ctrl list deployment
-
-# List resources in specific namespace
-./k8s-ctrl list deployment -n kube-system
-
-# Create a pod
-./k8s-ctrl create pod nginx-pod
-
-# Create a deployment
-./k8s-ctrl create deployment nginx-deployment
-
-# Delete a pod
-./k8s-ctrl delete pod nginx-pod
-
-# Delete a deployment
-./k8s-ctrl delete deployment nginx-deployment
-
-# Watch deployment events (with kubeconfig)
-./k8s-ctrl watch deployment -n default
-
-# Watch pod events (with kubeconfig)
-./k8s-ctrl watch pod -n default
-
-# Watch deployment events (in-cluster mode)
-./k8s-ctrl watch deployment --in-cluster
-
-# Watch with custom resync period
-./k8s-ctrl watch deployment --resync-period 60s
-
-# Watch pods in specific namespace
-./k8s-ctrl watch pod -n kube-system
-```
-
-### HTTP Server
-
-```bash
-# Start HTTP server on port 8080 with deployment informer
-./k8s-ctrl server --server-port 8080
-
-# Start with detailed logging and custom namespace
-./k8s-ctrl server --server-port 8080 --log-level debug --namespace kube-system
-
-# Start with in-cluster authentication (for running inside Kubernetes)
-./k8s-ctrl server --in-cluster --namespace default
-
-# Start with in-cluster authentication and selective informers
-./k8s-ctrl server --in-cluster --namespace default --enable-deployment-informer --no-enable-pod-informer
-
-# Start with custom kubeconfig and only pod informer
-./k8s-ctrl server --kubeconfig /path/to/config --enable-pod-informer --no-enable-deployment-informer
-```
-
-### API Endpoints
-
-Once the HTTP server is running, you can access the following REST API endpoints:
-
-#### Health Check
-```bash
-# Health check endpoint
-curl http://localhost:8080/health
-# Response: OK
-```
-
-#### Deployment Information
-```bash
-# Get deployment names only
-curl http://localhost:8080/deployments/names
-# Response: ["nginx", "api-server"]
-
-# Get full deployment information
-curl http://localhost:8080/deployments
-# Response: Detailed deployment objects with status, replicas, etc.
-```
-
-#### Pod Information
-```bash
-# Get pod names only
-curl http://localhost:8080/pods/names
-# Response: ["nginx-7584b6f84c-vnbv8", "api-server-abc123-xyz"]
-
-# Get full pod information
-curl http://localhost:8080/pods
-# Response: Detailed pod objects with status, node, containers, etc.
-```
-
-#### Individual Resource Endpoints
-```bash
-# Get specific deployment by name
-curl http://localhost:8080/deployments/nginx
-# Response: Detailed deployment object for 'nginx'
-
-# Get specific pod by name
-curl http://localhost:8080/pods/nginx-7584b6f84c-vnbv8
-# Response: Detailed pod object for the specified pod
-```
-
-#### Response Format
-
-All endpoints return JSON with structured data:
-
-**Deployment Object:**
-```json
-{
-  "name": "nginx",
-  "namespace": "default",
-  "replicas": 3,
-  "ready": 3,
-  "updated": 3,
-  "available": 3,
-  "age": "2h",
-  "image": "nginx:latest",
-  "labels": {
-    "app": "nginx"
-  }
-}
-```
-
-**Pod Object:**
-```json
-{
-  "name": "nginx-7584b6f84c-vnbv8",
-  "namespace": "default",
-  "phase": "Running",
-  "ready": "1/1",
-  "restarts": 0,
-  "age": "2h",
-  "image": "nginx:latest",
-  "node": "minikube",
-  "labels": {
-    "app": "nginx",
-    "pod-template-hash": "7584b6f84c"
-  }
-}
-```
-
-**Note:** API endpoints only return data from resources that are actively watched by the informers. Make sure the appropriate informers are enabled (--enable-deployment-informer, --enable-pod-informer) when starting the server.
-
-
-### Version information
-
-```bash
-# Display version
-./k8s-ctrl version
-```
-
-### Available Endpoints
-
-- `GET /health` - Health check endpoint that returns "OK"
-- `GET /` - Welcome page with a greeting message
-- All other paths return a 404 Not Found response
-
-The server automatically starts deployment and pod informers (configurable) that monitor Kubernetes events in real-time and log them with structured JSON format including:
-- **Deployment events**: Creation, updates, and deletion events with replica counts, status changes, container images, generation and namespace details
-- **Pod events**: Pod lifecycle events (creation, updates, deletion) with phase changes, readiness status, restart counts, and node assignments
-
-## Development
-
-### Makefile Commands
-
-```bash
-# Build the binary
-make build
-
-# Run all tests
-make test
-
-# Generate code coverage report
-make coverage
-
-# Run tests with envtest (recommended for Kubernetes controller tests)
-make test
-
-# Run tests with coverage and export to XML
+# Generate coverage report
 make test-coverage
 
-# Set up envtest environment
+# Set up test environment
 make envtest
 
-# Format code
+# Code formatting and linting
 make format
-
-# Run linter (requires golangci-lint)
 make lint
 
-# Build Docker image
-make docker-build
-
-# Clean up artifacts
+# Clean artifacts
 make clean
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-go test ./...
-
-# Run server tests
-go test ./internal/server/...
-
-# Run with code coverage
-go test -cover ./...
-```
-
-### Docker Container
-
-
-```bash
-# Build Docker image
-make docker-build
-
-# Run container with kubeconfig mounted
-docker run -p 8080:8080 \
-  -v ~/.kube/config:/root/.kube/config:ro \
-  k8s-ctrl:latest server --kubeconfig /root/.kube/config
 ```
 
 ### Project Structure
@@ -466,31 +221,20 @@ docker run -p 8080:8080 \
 │   └── version.go                             # Version command
 ├── internal/                                  # Internal logic (not importable by external packages)
 │   ├── controller/                            # Controller-runtime implementations
-│   │   ├── deployment_controller.go           # Deployment controller implementation
-│   │   ├── deployment_controller_test.go      # Integration tests
-│   │   └── deployment_controller_unit_test.go # Unit tests
+│   │   └── deployment_controller.go           # Deployment controller implementation
 │   ├── informer/                              # Kubernetes informers
 │   │   ├── deployment_informer.go             # Deployment informer implementation
-│   │   ├── deployment_informer_test.go        # Deployment informer integration tests
-│   │   ├── deployment_unit_test.go            # Deployment informer unit tests
 │   │   ├── pod_informer.go                    # Pod informer implementation
-│   │   ├── pod_informer_test.go               # Pod informer integration tests
-│   │   ├── pod_unit_test.go                   # Pod informer unit tests
 │   │   └── interface.go                       # Informer interfaces and manager
 │   ├── kubernetes/                            # Kubernetes operations
 │   │   ├── deployments.go                     # Deployment-related operations
-│   │   ├── deployments_test.go                # Deployment operation tests
 │   │   ├── pods.go                            # Pod-related operations
-│   │   ├── pods_test.go                       # Pod operation tests
 │   │   └── util.go                            # Shared utility functions
 │   └── server/                                # HTTP server
 │       ├── middleware/                        # HTTP middleware components
-│       │   ├── logging.go                     # Request logging middleware
-│       │   └── logging_test.go                # Middleware tests
+│       │   └── logging.go                     # Request logging middleware
 │       ├── handler.go                         # HTTP request handlers
-│       ├── handler_test.go                    # Handler tests
-│       ├── server.go                          # FastHTTP server implementation
-│       └── server_test.go                     # Server tests
+│       └── server.go                          # FastHTTP server implementation
 ├── charts/                                    # Helm charts
 │   └── k8s-ctrl/                              # Kubernetes deployment chart
 ├── .github/workflows/                         # CI/CD pipelines
@@ -500,29 +244,61 @@ docker run -p 8080:8080 \
 └── main.go                                    # Entry point
 ```
 
-## Environment Variables
+### Running Tests
 
-### All command-line flags can also be set via environment variables:
+The project includes comprehensive testing:
 
-- **K8S_CTRL_KUBECONFIG** - Path to kubeconfig file (equivalent to --kubeconfig)
-- **K8S_CTRL_LOG_LEVEL** - Log level (equivalent to --log-level)
-- **K8S_CTRL_SERVER_PORT** - HTTP server port (equivalent to --server-port)
-- **K8S_CTRL_IN_CLUSTER** - Use in-cluster authentication (equivalent to --in-cluster)
-- **K8S_CTRL_NAMESPACE** - Default namespace to watch (equivalent to --namespace)
-- **K8S_CTRL_RESYNC_PERIOD** - Informer resync period (equivalent to --resync-period)
-- **K8S_CTRL_ENABLE_DEPLOYMENT_INFORMER** - Enable deployment informer (equivalent to --enable-deployment-informer)
-- **K8S_CTRL_ENABLE_POD_INFORMER** - Enable pod informer (equivalent to --enable-pod-informer)
+- **Unit Tests**: Fast tests with mocked dependencies
+- **Integration Tests**: Tests with real Kubernetes API using envtest
+- **Controller Tests**: Controller-runtime specific testing
 
-## Key Components
+```bash
+# Quick unit tests
+go test -short ./...
 
-- **Cobra CLI**: Command-line interface with subcommands for Kubernetes operations
-- **Controller Runtime**: sigs.k8s.io/controller-runtime manager and reconcilers
-- **FastHTTP Server**: High-performance HTTP server with middleware support
-- **Kubernetes Informers**: Real-time event watchers for deployments and pods
-- **Structured Logging**: Zerolog-based logging with request IDs and contextual information
-- **Distroless Container**: Minimal, secure container image for production deployment
-- **Envtest Integration**: Comprehensive testing with Kubernetes API server simulation
+# Full test suite with integration tests
+make test
+
+# Watch mode for development
+make test | grep -v "PASS"
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Run tests: `make test`
+5. Run linting: `make lint`
+6. Commit your changes: `git commit -m 'Add amazing feature'`
+7. Push to the branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
+
+### Configuration
+
+The application supports configuration via command-line flags, environment variables, or config files:
+
+```bash
+# Environment variables (K8S_CTRL_ prefix)
+export K8S_CTRL_LOG_LEVEL=debug
+export K8S_CTRL_SERVER_PORT=8080
+export K8S_CTRL_NAMESPACE=production
+
+# Command-line flags
+./k8s-ctrl server --log-level debug --server-port 8080 --namespace production
+```
+
+**Available Configuration:**
+- `--kubeconfig`: Path to kubeconfig file
+- `--log-level`: Logging level (trace, debug, info, warn, error)
+- `--server-port`: HTTP server port (default: 8080)
+- `--namespace`: Default namespace to watch (default: default)
+- `--in-cluster`: Use in-cluster authentication
+- `--enable-deployment-informer`: Enable deployment informer (default: true)
+- `--enable-pod-informer`: Enable pod informer (default: true)
+- `--enable-controller`: Enable controller-runtime controller (default: true)
+- `--resync-period`: Informer resync period (default: 10m)
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
