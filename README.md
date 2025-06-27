@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/roman-povoroznyk/kubernetes-controller)](https://goreportcard.com/report/github.com/roman-povoroznyk/kubernetes-controller)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A production-ready Kubernetes CLI tool and HTTP server for managing resources with real-time event monitoring using controller-runtime.
+A Kubernetes CLI tool and HTTP server for managing resources with real-time event monitoring using controller-runtime.
 
 ## Features
 
