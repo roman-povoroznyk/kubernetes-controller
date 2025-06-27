@@ -31,16 +31,16 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create Kubernetes client")
 			return err
-		}		// Start informers based on flags
+		} // Start informers based on flags
 		ctx := context.Background()
-		
+
 		if enableDeploymentInformer {
 			// Start deployment informer in background
 			informerConfig := informer.DeploymentInformerConfig{
 				Namespace:    namespace,
 				ResyncPeriod: resyncPeriod,
 			}
-			
+
 			go func() {
 				if err := informer.StartDeploymentInformer(ctx, clientset, informerConfig); err != nil {
 					log.Error().Err(err).Msg("Failed to start deployment informer")
@@ -49,12 +49,12 @@ var serverCmd = &cobra.Command{
 		}
 
 		if enablePodInformer {
-			// Start pod informer in background  
+			// Start pod informer in background
 			podInformerConfig := informer.PodInformerConfig{
 				Namespace:    namespace,
 				ResyncPeriod: resyncPeriod,
 			}
-			
+
 			go func() {
 				if err := informer.StartPodInformer(ctx, clientset, podInformerConfig); err != nil {
 					log.Error().Err(err).Msg("Failed to start pod informer")
