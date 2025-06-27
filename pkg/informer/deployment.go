@@ -169,3 +169,4 @@ func (di *DeploymentInformer) ListDeployments() ([]*appsv1.Deployment, error) {
 func (di *DeploymentInformer) HasSynced() bool {
 	return di.informer.HasSynced()
 }
+# Informer implementation
