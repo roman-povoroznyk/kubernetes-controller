@@ -1,17 +1,217 @@
 # Kubernetes Controller
 
-A lightweight command-line tool for interacting with Kubernetes clusters with a high-performance HTTP server.
+A lightweight command-line tool for interacting with Kubernetes clusters with a high-performance HTTP server and controller-runtime implementation.
 
 ## Features
 
 - **Pod Management**: Create, delete, and list pods in a Kubernetes cluster
 - **Deployment Management**: Create, delete, and list deployments in a Kubernetes cluster
 - **Deployment Informer**: Real-time monitoring of deployment events with structured logging
+- **Controller Runtime**: Kubernetes controller using sigs.k8s.io/controller-runtime for robust event handling
 - **High-Performance HTTP Server**: FastHTTP-based server with health endpoint and informer integration
 - **Structured Logging**: Detailed request logging with unique request IDs and event tracking
 - **Graceful Shutdown**: Clean shutdown with configurable timeout
 - **kubectl-like Output**: Familiar output format for Kubernetes operations
 - **Flexible Authentication**: Support for both kubeconfig and in-cluster authentication
+
+## Step 9: Controller Runtime Implementation
+
+### Overview
+
+Step 9 introduces a proper Kubernetes controller using the `sigs.k8s.io/controller-runtime` library that:
+- Watches for Deployment events (CREATE, UPDATE, DELETE)
+- Logs each event with structured logging
+- Uses the reconcile pattern for robust event handling
+- Runs alongside existing informers
+
+### Controller Structure
+
+The `DeploymentReconciler` implements the `reconcile.Reconciler` interface:
+
+```go
+type DeploymentReconciler struct {
+    client.Client
+    Scheme *runtime.Scheme
+}
+```
+
+### Event Detection and Logging
+
+The controller logs different types of events:
+
+- **DELETE events**: When a deployment is not found (404 error)
+- **CREATE/UPDATE events**: When a deployment exists, with detailed information:
+  - Creation timestamp
+  - Replica counts (desired vs ready vs available)
+  - Resource version for tracking changes
+  - Event type determination based on `ObservedGeneration`
+
+### Configuration and Usage
+
+#### Server Flags
+
+New flag added to control the controller:
+- `--enable-controller`: Enable/disable the controller-runtime deployment controller (default: true)
+
+#### Integration with Existing System
+
+The controller runs alongside existing informers and can be enabled/disabled independently:
+
+```bash
+# Start server with controller-runtime enabled (default)
+./k8s-ctrl server --enable-controller=true
+
+# Run without controller
+./k8s-ctrl server --enable-controller=false
+
+# Run with only controller (no informers)
+./k8s-ctrl server --enable-deployment-informer=false --enable-pod-informer=false
+
+# View controller logs
+tail -f /var/log/k8s-ctrl.log | grep "deployment-controller"
+```
+
+### Event Examples
+
+#### CREATE Event Log
+```json
+{
+  "level": "info",
+  "namespace": "default",
+  "name": "nginx-deployment",
+  "component": "deployment-controller",
+  "created": "2025-06-27T12:00:00Z",
+  "replicas": 3,
+  "ready_replicas": 0,
+  "available_replicas": 0,
+  "generation": "1",
+  "message": "Deployment CREATE event received"
+}
+```
+
+#### UPDATE Event Log
+```json
+{
+  "level": "info",
+  "namespace": "default", 
+  "name": "nginx-deployment",
+  "component": "deployment-controller",
+  "created": "2025-06-27T12:00:00Z",
+  "replicas": 5,
+  "ready_replicas": 3,
+  "available_replicas": 3,
+  "generation": "2",
+  "message": "Deployment UPDATE event received"
+}
+```
+
+#### DELETE Event Log
+```json
+{
+  "level": "info",
+  "namespace": "default",
+  "name": "nginx-deployment", 
+  "component": "deployment-controller",
+  "message": "Deployment DELETE event received"
+}
+```
+
+### Implementation Details
+
+#### Key Features
+
+1. **Structured Logging**: Uses zerolog with contextual information
+2. **Safe Resource Access**: Handles nil pointer checks for optional fields
+3. **Event Type Detection**: Distinguishes between CREATE and UPDATE events
+4. **Error Handling**: Proper error handling with client.IgnoreNotFound()
+5. **Concurrency Control**: Configurable `MaxConcurrentReconciles`
+
+#### Code Structure
+
+**Files Added/Modified:**
+
+1. **`internal/controller/deployment_controller.go`**: Main controller implementation
+2. **`internal/controller/deployment_controller_unit_test.go`**: Unit tests
+3. **`internal/controller/deployment_controller_test.go`**: Integration tests
+4. **`cmd/server/server.go`**: Updated to integrate controller-runtime manager
+
+#### Manager Integration
+
+The controller is integrated through the controller-runtime manager:
+
+```go
+mgr, err := ctrlruntime.NewManager(config, manager.Options{})
+if err := controller.AddDeploymentController(mgr); err != nil {
+    return err
+}
+
+go func() {
+    if err := mgr.Start(context.Background()); err != nil {
+        log.Error().Err(err).Msg("Manager exited with error")
+    }
+}()
+```
+
+### Testing
+
+#### Unit Tests
+
+- Test reconcile logic with fake clients
+- Test helper functions (getReplicaCount, getEventType)
+- Test error handling scenarios
+
+#### Integration Tests
+
+- Use envtest for real Kubernetes API interaction
+- Test CREATE, UPDATE, DELETE event flows
+- Verify controller startup and shutdown
+
+#### Running Tests
+
+```bash
+# Run all tests (unit + integration)
+make test
+
+# Run only unit tests
+make test-unit
+
+# Run with coverage
+make test-coverage
+```
+
+### Best Practices Applied
+
+Based on analysis of reference implementations:
+
+1. **Minimal Reconcile Logic**: The reconciler focuses only on logging, following the "dummy reconciler" pattern
+2. **Structured Logging**: Consistent with zerolog usage throughout the project
+3. **Resource Safety**: Safe access to pointer fields with helper functions
+4. **Error Handling**: Proper use of `client.IgnoreNotFound()` for delete events
+5. **Manager Pattern**: Standard controller-runtime manager integration
+6. **Testability**: Comprehensive unit and integration tests
+
+### Comparison with Informers
+
+| Feature | Informers | Controller Runtime |
+|---------|-----------|-------------------|
+| Event Handling | Manual event handlers | Reconcile pattern |
+| Retries | Manual implementation | Built-in retry logic |
+| Error Handling | Custom logic | Standardized patterns |
+| Testing | Complex setup | envtest integration |
+| Concurrency | Manual coordination | Built-in rate limiting |
+| Standards | Custom implementation | Industry standard |
+
+The controller-runtime implementation provides a more robust and maintainable solution for Kubernetes event handling.
+
+### Future Enhancements
+
+Potential improvements for future iterations:
+
+1. **Pod Controller**: Add similar controller for Pod events
+2. **Metrics**: Add Prometheus metrics for controller events
+3. **Filtering**: Add label selectors or namespace filtering
+4. **Custom Resources**: Extend to watch custom resource types
+5. **Leader Election**: Add leader election for multi-replica deployments
 
 ## Installation
 
@@ -318,4 +518,3 @@ docker run -p 8080:8080 \
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-```

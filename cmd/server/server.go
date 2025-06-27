@@ -2,14 +2,20 @@ package server
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/roman-povoroznyk/kubernetes-controller/cmd"
+	"github.com/roman-povoroznyk/kubernetes-controller/internal/controller"
 	"github.com/roman-povoroznyk/kubernetes-controller/internal/informer"
 	"github.com/roman-povoroznyk/kubernetes-controller/internal/kubernetes"
 	"github.com/roman-povoroznyk/kubernetes-controller/internal/server"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	ctrlruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var serverCmd = &cobra.Command{
@@ -25,9 +31,42 @@ var serverCmd = &cobra.Command{
 		resyncPeriod, _ := c.Flags().GetDuration("resync-period")
 		enableDeploymentInformer, _ := c.Flags().GetBool("enable-deployment-informer")
 		enablePodInformer, _ := c.Flags().GetBool("enable-pod-informer")
+		enableController, _ := c.Flags().GetBool("enable-controller")
 
 		// Create Kubernetes client
 		clientset, err := kubernetes.NewKubernetesClient(inCluster, kubeconfig)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create Kubernetes client")
+			return err
+		}
+
+		// Start controller-runtime manager if enabled
+		if enableController {
+			config, err := getKubernetesConfig(kubeconfig, inCluster)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to get Kubernetes config for controller-runtime")
+				return err
+			}
+
+			mgr, err := ctrlruntime.NewManager(config, manager.Options{})
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to create controller-runtime manager")
+				return err
+			}
+
+			if err := controller.AddDeploymentController(mgr); err != nil {
+				log.Error().Err(err).Msg("Failed to add deployment controller")
+				return err
+			}
+
+			go func() {
+				log.Info().Msg("Starting controller-runtime manager...")
+				if err := mgr.Start(context.Background()); err != nil {
+					log.Error().Err(err).Msg("Manager exited with error")
+					os.Exit(1)
+				}
+			}()
+		}
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to create Kubernetes client")
 			return err
@@ -72,9 +111,18 @@ var serverCmd = &cobra.Command{
 			Str("namespace", namespace).
 			Bool("deployment_informer", enableDeploymentInformer).
 			Bool("pod_informer", enablePodInformer).
-			Msg("Starting server with informers")
+			Bool("controller", enableController).
+			Msg("Starting server with informers and controllers")
 		return server.Start(config)
 	},
+}
+
+// getKubernetesConfig returns the Kubernetes configuration for controller-runtime
+func getKubernetesConfig(kubeconfigPath string, inCluster bool) (*rest.Config, error) {
+	if inCluster {
+		return rest.InClusterConfig()
+	}
+	return clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 }
 
 func init() {
@@ -86,6 +134,7 @@ func init() {
 	serverCmd.Flags().Duration("resync-period", 30*time.Second, "Informer resync period")
 	serverCmd.Flags().Bool("enable-deployment-informer", true, "Enable deployment informer")
 	serverCmd.Flags().Bool("enable-pod-informer", true, "Enable pod informer")
+	serverCmd.Flags().Bool("enable-controller", true, "Enable controller-runtime deployment controller")
 
 	cmd.RootCmd.AddCommand(serverCmd)
 }
