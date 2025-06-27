@@ -83,31 +83,7 @@ docker run -p 8080:8080 -p 8081:8081 \
 ```bash
 # Deploy to Kubernetes
 helm install k8s-ctrl ./charts/k8s-ctrl
-
-# Deploy with custom values for production
-helm install k8s-ctrl ./charts/k8s-ctrl \
-  --set replicaCount=3 \
-  --set env.LOG_LEVEL=info \
-  --set resources.requests.cpu=200m \
-  --set resources.requests.memory=256Mi
-
-# Build and deploy local Docker image in minikube
-make docker-build
-minikube image load k8s-ctrl:latest
-helm upgrade k8s-ctrl ./charts/k8s-ctrl --set image.pullPolicy=Never
 ```
-
-## Production Deployment
-
-### ✅ Verified Production Features
-
-- **High Availability**: Leader election support for multi-replica deployments
-- **Health Monitoring**: `/health` endpoint with configurable liveness/readiness probes
-- **Metrics & Observability**: Prometheus metrics at `/metrics` (port 8081)
-- **Structured Logging**: JSON-formatted logs with configurable levels
-- **Graceful Shutdown**: SIGTERM handling and resource cleanup
-- **Resource Management**: Production-ready container limits and requests
-- **Error Handling**: Consistent JSON error responses across all endpoints
 
 ### Endpoints
 
@@ -122,23 +98,6 @@ helm upgrade k8s-ctrl ./charts/k8s-ctrl --set image.pullPolicy=Never
 | `/pods/names` | GET | Get pod names only |
 | `/pods/{name}` | GET | Get specific pod |
 
-### Testing the Deployment
-
-```bash
-# Port forward to access the service
-kubectl port-forward service/k8s-controller-k8s-ctrl 8080:8080
-
-# Test health endpoint
-curl http://localhost:8080/health
-
-# Test API endpoints
-curl http://localhost:8080/deployments
-curl http://localhost:8080/pods
-
-# Check metrics (separate port)
-kubectl port-forward service/k8s-controller-k8s-ctrl 8081:8081
-curl http://localhost:8081/metrics
-```
 
 ## Usage
 
