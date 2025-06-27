@@ -87,92 +87,6 @@ make build
 ./k8s-ctrl server --kubeconfig /path/to/config --enable-pod-informer --no-enable-deployment-informer
 ```
 
-### API Endpoints
-
-Once the HTTP server is running, you can access the following REST API endpoints:
-
-#### Health Check
-```bash
-# Health check endpoint
-curl http://localhost:8080/health
-# Response: OK
-```
-
-#### Deployment Information
-```bash
-# Get deployment names only
-curl http://localhost:8080/deployments/names
-# Response: ["nginx", "api-server"]
-
-# Get full deployment information
-curl http://localhost:8080/deployments
-# Response: Detailed deployment objects with status, replicas, etc.
-```
-
-#### Pod Information
-```bash
-# Get pod names only  
-curl http://localhost:8080/pods/names
-# Response: ["nginx-7584b6f84c-vnbv8", "api-server-abc123-xyz"]
-
-# Get full pod information
-curl http://localhost:8080/pods
-# Response: Detailed pod objects with status, node, containers, etc.
-```
-
-#### Individual Resource Endpoints
-```bash
-# Get specific deployment by name
-curl http://localhost:8080/deployments/nginx
-# Response: Detailed deployment object for 'nginx'
-
-# Get specific pod by name  
-curl http://localhost:8080/pods/nginx-7584b6f84c-vnbv8
-# Response: Detailed pod object for the specified pod
-```
-
-#### Response Format
-
-All endpoints return JSON with structured data:
-
-**Deployment Object:**
-```json
-{
-  "name": "nginx",
-  "namespace": "default",
-  "replicas": 3,
-  "ready": 3,
-  "updated": 3,
-  "available": 3,
-  "age": "2h",
-  "image": "nginx:latest",
-  "labels": {
-    "app": "nginx"
-  }
-}
-```
-
-**Pod Object:**
-```json
-{
-  "name": "nginx-7584b6f84c-vnbv8",
-  "namespace": "default", 
-  "phase": "Running",
-  "ready": "1/1",
-  "restarts": 0,
-  "age": "2h",
-  "image": "nginx:latest",
-  "node": "minikube",
-  "labels": {
-    "app": "nginx",
-    "pod-template-hash": "7584b6f84c"
-  }
-}
-```
-
-**Note:** API endpoints only return data from resources that are actively watched by the informers. Make sure the appropriate informers are enabled (--enable-deployment-informer, --enable-pod-informer) when starting the server.
-````markdown
-
 ### Version information
 
 ```bash
@@ -318,4 +232,3 @@ docker run -p 8080:8080 \
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-```

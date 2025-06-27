@@ -3,7 +3,6 @@ package informer
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -13,12 +12,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-)
-
-// Global informer instances for API access
-var (
-	deploymentInformer cache.SharedIndexInformer
-	deploymentMutex    sync.RWMutex
 )
 
 // DeploymentInformerConfig holds configuration for the deployment informer
@@ -47,11 +40,6 @@ func StartDeploymentInformer(ctx context.Context, clientset *kubernetes.Clientse
 	)
 
 	informer := factory.Apps().V1().Deployments().Informer()
-
-	// Store informer globally for API access
-	deploymentMutex.Lock()
-	deploymentInformer = informer
-	deploymentMutex.Unlock()
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -156,61 +144,4 @@ func getMainContainerImage(deployment *appsv1.Deployment) string {
 		return deployment.Spec.Template.Spec.Containers[0].Image
 	}
 	return "unknown"
-}
-
-// API access functions
-
-// GetDeploymentNames returns a slice of deployment names from the informer's cache
-func GetDeploymentNames() []string {
-	deploymentMutex.RLock()
-	defer deploymentMutex.RUnlock()
-
-	var names []string
-	if deploymentInformer == nil {
-		return names
-	}
-
-	for _, obj := range deploymentInformer.GetStore().List() {
-		if deployment, ok := obj.(*appsv1.Deployment); ok {
-			names = append(names, deployment.Name)
-		}
-	}
-	return names
-}
-
-// GetDeployments returns a slice of deployments from the informer's cache
-func GetDeployments() []*appsv1.Deployment {
-	deploymentMutex.RLock()
-	defer deploymentMutex.RUnlock()
-
-	var deployments []*appsv1.Deployment
-	if deploymentInformer == nil {
-		return deployments
-	}
-
-	for _, obj := range deploymentInformer.GetStore().List() {
-		if deployment, ok := obj.(*appsv1.Deployment); ok {
-			deployments = append(deployments, deployment)
-		}
-	}
-	return deployments
-}
-
-// GetDeploymentByName returns a specific deployment by name from the informer's cache
-func GetDeploymentByName(name string) (*appsv1.Deployment, bool) {
-	deploymentMutex.RLock()
-	defer deploymentMutex.RUnlock()
-
-	if deploymentInformer == nil {
-		return nil, false
-	}
-
-	for _, obj := range deploymentInformer.GetStore().List() {
-		if deployment, ok := obj.(*appsv1.Deployment); ok {
-			if deployment.Name == name {
-				return deployment, true
-			}
-		}
-	}
-	return nil, false
 }
