@@ -454,40 +454,51 @@ docker run -p 8080:8080 \
 
 ```
 .
-├── cmd/                         # CLI commands
-│   ├── kubernetes/              # Kubernetes interaction commands
-│   │   ├── create.go            # Pod/Deployment creation command
-│   │   ├── delete.go            # Pod/Deployment deletion command
-│   │   ├── list.go              # Pod/Deployment listing command
-│   │   └── watch.go             # Watch deployments and pods for events
-│   ├── server/                  # HTTP server command
-│   ├── root.go                  # Root CLI command
-│   └── version.go               # Version command
-├── internal/                    # Internal logic (not importable by external packages)
-│   ├── informer/                # Kubernetes informers
-│   │   ├── deployments_informer.go      # Deployment informer implementation
-│   │   ├── deployments_informer_test.go # Deployment informer tests
-│   │   ├── pods_informer.go             # Pod informer implementation
-│   │   ├── pods_informer_test.go        # Pod informer tests
-│   │   └── interface.go         # Informer interfaces and manager
-│   ├── kubernetes/              # Kubernetes operations
-│   │   ├── pods.go              # Pod-related operations
-│   │   ├── pods_test.go         # Pod operation tests
-│   │   ├── deployments.go       # Deployment-related operations
-│   │   ├── deployments_test.go  # Deployment operation tests
-│   │   └── util.go              # Shared utility functions
-│   └── server/                  # HTTP server
+├── cmd/                                       # CLI commands
+│   ├── kubernetes/                            # Kubernetes interaction commands
+│   │   ├── create.go                          # Pod/Deployment creation command
+│   │   ├── delete.go                          # Pod/Deployment deletion command
+│   │   ├── list.go                            # Pod/Deployment listing command
+│   │   └── watch.go                           # Watch deployments and pods for events
+│   ├── server/                                # HTTP server command
+│   │   ├── server.go                          # Server command implementation
+│   │   └── server_test.go                     # Server command tests
+│   ├── root.go                                # Root CLI command
+│   └── version.go                             # Version command
+├── internal/                                  # Internal logic (not importable by external packages)
+│   ├── controller/                            # Controller-runtime implementations
+│   │   ├── deployment_controller.go           # Deployment controller implementation
+│   │   ├── deployment_controller_test.go      # Integration tests
+│   │   └── deployment_controller_unit_test.go # Unit tests
+│   ├── informer/                              # Kubernetes informers
+│   │   ├── deployment_informer.go            # Deployment informer implementation
+│   │   ├── deployment_informer_test.go       # Deployment informer integration tests
+│   │   ├── deployment_unit_test.go           # Deployment informer unit tests
+│   │   ├── pod_informer.go                   # Pod informer implementation
+│   │   ├── pod_informer_test.go              # Pod informer integration tests
+│   │   ├── pod_unit_test.go                  # Pod informer unit tests
+│   │   └── interface.go                      # Informer interfaces and manager
+│   ├── kubernetes/                           # Kubernetes operations
+│   │   ├── deployments.go                    # Deployment-related operations
+│   │   ├── deployments_test.go               # Deployment operation tests
+│   │   ├── pods.go                           # Pod-related operations
+│   │   ├── pods_test.go                      # Pod operation tests
+│   │   └── util.go                           # Shared utility functions
+│   └── server/                               # HTTP server
 │       ├── middleware/
-│       │   ├── logging.go       # Request logging middleware
-│       │   └── logging_test.go  # Middleware tests
-│       ├── handler.go           # HTTP request handlers
-│       └── server.go            # FastHTTP server
-│       └── server_test.go       # Server tests
-├── .github/workflows/           # CI/CD pipelines
-│   └── ci.yaml                  # GitHub Actions workflow
-├── Dockerfile                   # Distroless container definition
-├── Makefile                     # Build automation
-└── main.go                      # Entry point
+│       │   ├── logging.go                    # Request logging middleware
+│       │   └── logging_test.go               # Middleware tests
+│       ├── handler.go                        # HTTP request handlers
+│       ├── handler_test.go                   # Handler tests
+│       ├── server.go                         # FastHTTP server implementation
+│       └── server_test.go                    # Server tests
+├── charts/                                   # Helm charts
+│   └── k8s-ctrl/                             # Kubernetes deployment chart
+├── .github/workflows/                        # CI/CD pipelines
+│   └── ci.yaml                               # GitHub Actions workflow
+├── Dockerfile                                # Distroless container definition
+├── Makefile                                  # Build automation
+└── main.go                                   # Entry point
 ```
 
 ## Environment Variables
