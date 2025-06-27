@@ -11,9 +11,10 @@ A modern Kubernetes CLI tool and HTTP server for managing resources with real-ti
 - **Resource Management**: Create, delete, and list pods and deployments
 - **Real-time Monitoring**: Watch Kubernetes events with structured logging
 - **Controller Runtime**: Production-ready event handling using `sigs.k8s.io/controller-runtime`
+- **High Availability**: Leader election with automatic failover for production deployments
 - **REST API**: Query resource information via HTTP endpoints
 - **Multiple Authentication**: Supports kubeconfig files and in-cluster authentication
-- **Observability**: Structured logging with zerolog and unique request IDs
+- **Observability**: Structured logging, metrics endpoint, and unique request IDs
 
 ## Quick Start
 
@@ -29,8 +30,14 @@ make build
 # Start HTTP server with event monitoring
 ./k8s-ctrl server --server-port 8080
 
+# Start with leader election for production
+./k8s-ctrl server --enable-leader-election --metrics-port 8081
+
 # Check server health
 curl http://localhost:8080/health
+
+# Check controller metrics
+curl http://localhost:8081/metrics
 ```
 
 ## Installation
@@ -50,9 +57,17 @@ make build
 make docker-build
 
 # Run with mounted kubeconfig
-docker run -p 8080:8080 \
+docker run -p 8080:8080 -p 8081:8081 \
   -v ~/.kube/config:/root/.kube/config:ro \
   k8s-ctrl:latest server --kubeconfig /root/.kube/config
+
+# Production run with leader election
+docker run -p 8080:8080 -p 8081:8081 \
+  -v ~/.kube/config:/root/.kube/config:ro \
+  k8s-ctrl:latest server \
+  --kubeconfig /root/.kube/config \
+  --enable-leader-election \
+  --metrics-port 8081
 ```
 
 ### Using Helm
@@ -60,6 +75,13 @@ docker run -p 8080:8080 \
 ```bash
 # Deploy to Kubernetes
 helm install k8s-ctrl ./charts/k8s-ctrl
+
+# Deploy with custom values for production
+helm install k8s-ctrl ./charts/k8s-ctrl \
+  --set replicaCount=3 \
+  --set leaderElection.enabled=true \
+  --set leaderElection.namespace=kube-system \
+  --set metrics.port=8081
 ```
 
 ## Usage
@@ -95,10 +117,15 @@ helm install k8s-ctrl ./charts/k8s-ctrl
   --log-level debug \
   --namespace kube-system \
   --enable-deployment-informer \
-  --enable-pod-informer
+  --enable-pod-informer \
+  --enable-leader-election \
+  --metrics-port 8081
 
 # In-cluster mode (for Kubernetes deployment)
 ./k8s-ctrl server --in-cluster --namespace default
+
+# Development mode without leader election
+./k8s-ctrl server --enable-leader-election=false
 ```
 
 ### API Endpoints
@@ -116,6 +143,9 @@ curl http://localhost:8080/pods/names
 # Individual resources
 curl http://localhost:8080/deployments/nginx
 curl http://localhost:8080/pods/nginx-abc123-xyz
+
+# Controller metrics (when enabled)
+curl http://localhost:8081/metrics
 ```
 
 ## Event Monitoring
@@ -142,17 +172,23 @@ The application includes a production-ready Kubernetes controller that watches f
 - **UPDATE**: Modified deployments (ObservedGeneration > 0)
 - **DELETE**: Removed deployments (resource not found)
 
+**Controller Manager Integration:**
+- **Unified Lifecycle**: All controllers and informers managed by single `controller-runtime` manager
+- **Leader Election**: Automatic coordination for high availability deployments
+- **Graceful Shutdown**: Proper cleanup and resource management on termination
+- **Metrics Collection**: Built-in Prometheus metrics on dedicated endpoint
+
 ## Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │  CLI Commands   │    │  HTTP Server     │    │   Controller    │
 │                 │    │                  │    │   Runtime       │
-│                 │    │                  │    │                 │
+│                 │    │                  │    │   Manager       │
 │ • list          │    │ • REST API       │    │ • Event Watch   │
 │ • create        │────│ • Health checks  │────│ • Reconcile     │
-│ • delete        │    │ • Middleware     │    │ • Structured    │
-│ • watch         │    │ • Informers      │    │   Logging       │
+│ • delete        │    │ • Middleware     │    │ • Leader Elect  │
+│ • watch         │    │ • Informers      │    │ • Metrics       │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -166,9 +202,10 @@ The application includes a production-ready Kubernetes controller that watches f
 **Key Components:**
 - **CLI**: Cobra-based command interface with kubectl-like operations
 - **HTTP Server**: FastHTTP server with middleware and real-time endpoints
-- **Controller**: `sigs.k8s.io/controller-runtime` based Deployment controller
-- **Informers**: Real-time event watchers for deployments and pods
-- **Logging**: Structured logging with zerolog and contextual information
+- **Controller Manager**: `sigs.k8s.io/controller-runtime` manager with leader election
+- **Controllers**: Deployment controller with structured event handling
+- **Informers**: Real-time event watchers integrated with manager lifecycle
+- **Observability**: Structured logging, metrics endpoint, and health monitoring
 
 ## Development
 
@@ -221,7 +258,8 @@ make clean
 │   └── version.go                             # Version command
 ├── internal/                                  # Internal logic (not importable by external packages)
 │   ├── controller/                            # Controller-runtime implementations
-│   │   └── deployment_controller.go           # Deployment controller implementation
+│   │   ├── deployment_controller.go           # Deployment controller implementation
+│   │   └── informer_manager.go                # Manager-integrated informers
 │   ├── informer/                              # Kubernetes informers
 │   │   ├── deployment_informer.go             # Deployment informer implementation
 │   │   ├── pod_informer.go                    # Pod informer implementation
@@ -298,6 +336,9 @@ export K8S_CTRL_NAMESPACE=production
 - `--enable-pod-informer`: Enable pod informer (default: true)
 - `--enable-controller`: Enable controller-runtime controller (default: true)
 - `--resync-period`: Informer resync period (default: 10m)
+- `--enable-leader-election`: Enable leader election for high availability (default: true)
+- `--leader-election-namespace`: Namespace for leader election lease (default: default)
+- `--metrics-port`: Port for controller manager metrics (default: 8081)
 
 ## License
 
