@@ -1,14 +1,13 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/roman-povoroznyk/kubernetes-controller/internal/informer"
+	"github.com/roman-povoroznyk/kubernetes-controller/internal/utils"
 	"github.com/valyala/fasthttp"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -20,8 +19,7 @@ func HandleRequests(ctx *fasthttp.RequestCtx) {
 	// Check for individual resource endpoints first
 	if strings.HasPrefix(path, "/deployments/") && path != "/deployments/names" {
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		deploymentName := strings.TrimPrefix(path, "/deployments/")
@@ -31,8 +29,7 @@ func HandleRequests(ctx *fasthttp.RequestCtx) {
 
 	if strings.HasPrefix(path, "/pods/") && path != "/pods/names" {
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		podName := strings.TrimPrefix(path, "/pods/")
@@ -43,36 +40,31 @@ func HandleRequests(ctx *fasthttp.RequestCtx) {
 	switch path {
 	case "/health":
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		handleHealth(ctx)
 	case "/deployments/names":
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		handleDeploymentNames(ctx)
 	case "/deployments":
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		handleDeployments(ctx)
 	case "/pods/names":
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		handlePodNames(ctx)
 	case "/pods":
 		if method != fasthttp.MethodGet {
-			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
-			fmt.Fprintf(ctx, "Method Not Allowed")
+			utils.HTTP.MethodNotAllowed(ctx)
 			return
 		}
 		handlePods(ctx)
@@ -85,20 +77,17 @@ func HandleRequests(ctx *fasthttp.RequestCtx) {
 
 // handleHealth handles health check requests
 func handleHealth(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	fmt.Fprintf(ctx, "OK")
+	utils.HTTP.PlainResponse(ctx, fasthttp.StatusOK, "OK")
 }
 
 // handleDefault handles the root route
 func handleDefault(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	fmt.Fprintf(ctx, "Hello from k8s-ctrl FastHTTP server!")
+	utils.HTTP.PlainResponse(ctx, fasthttp.StatusOK, "Hello from k8s-ctrl FastHTTP server!")
 }
 
 // handleNotFound handles requests to non-existent routes
 func handleNotFound(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	fmt.Fprintf(ctx, "404 Not Found: %s", ctx.Path())
+	utils.HTTP.NotFound(ctx, fmt.Sprintf("404 Not Found: %s", ctx.Path()))
 }
 
 // Deployment response structures
@@ -135,37 +124,24 @@ func handleDeployments(ctx *fasthttp.RequestCtx) {
 		summary := DeploymentSummary{
 			Name:      dep.Name,
 			Namespace: dep.Namespace,
-			Replicas:  getReplicaCount(dep.Spec.Replicas),
+			Replicas:  utils.K8sHelpers.GetReplicaCount(dep.Spec.Replicas),
 			Ready:     dep.Status.ReadyReplicas,
 			Updated:   dep.Status.UpdatedReplicas,
 			Available: dep.Status.AvailableReplicas,
 			Age:       formatAge(dep.CreationTimestamp.Time),
-			Image:     getMainContainerImage(dep),
+			Image:     utils.K8sHelpers.GetMainContainerImage(dep),
 			Labels:    dep.Labels,
 		}
 		summaries = append(summaries, summary)
 	}
 
-	ctx.SetContentType("application/json")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	if err := json.NewEncoder(ctx).Encode(summaries); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		fmt.Fprintf(ctx, `{"error": "Failed to encode response"}`)
-	}
+	utils.HTTP.JSONResponse(ctx, fasthttp.StatusOK, summaries)
 }
 
 // handleDeploymentNames returns only deployment names from informer cache
 func handleDeploymentNames(ctx *fasthttp.RequestCtx) {
 	names := informer.GetDeploymentNames()
-
-	ctx.SetContentType("application/json")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	if err := json.NewEncoder(ctx).Encode(names); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		fmt.Fprintf(ctx, `{"error": "Failed to encode response"}`)
-	}
+	utils.HTTP.JSONResponse(ctx, fasthttp.StatusOK, names)
 }
 
 // handlePods returns full pod information from informer cache
@@ -179,73 +155,52 @@ func handlePods(ctx *fasthttp.RequestCtx) {
 			Namespace: pod.Namespace,
 			Phase:     string(pod.Status.Phase),
 			Ready:     getPodReadyStatus(pod),
-			Restarts:  getPodRestartCount(pod),
+			Restarts:  int(utils.K8sHelpers.GetPodRestartCount(pod)),
 			Age:       formatAge(pod.CreationTimestamp.Time),
-			Image:     getMainPodImage(pod),
+			Image:     utils.K8sHelpers.GetMainPodImage(pod),
 			Node:      pod.Spec.NodeName,
 			Labels:    pod.Labels,
 		}
 		summaries = append(summaries, summary)
 	}
 
-	ctx.SetContentType("application/json")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	if err := json.NewEncoder(ctx).Encode(summaries); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		fmt.Fprintf(ctx, `{"error": "Failed to encode response"}`)
-	}
+	utils.HTTP.JSONResponse(ctx, fasthttp.StatusOK, summaries)
 }
 
 // handlePodNames returns only pod names from informer cache
 func handlePodNames(ctx *fasthttp.RequestCtx) {
 	names := informer.GetPodNames()
-
-	ctx.SetContentType("application/json")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	if err := json.NewEncoder(ctx).Encode(names); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		fmt.Fprintf(ctx, `{"error": "Failed to encode response"}`)
-	}
+	utils.HTTP.JSONResponse(ctx, fasthttp.StatusOK, names)
 }
 
 // handleDeploymentByName returns a specific deployment by name from informer cache
 func handleDeploymentByName(ctx *fasthttp.RequestCtx, name string) {
 	deployment, found := informer.GetDeploymentByName(name)
 	if !found || deployment == nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		fmt.Fprintf(ctx, `{"error": "Deployment not found"}`)
+		utils.HTTP.NotFound(ctx, "Deployment not found")
 		return
 	}
 
 	summary := DeploymentSummary{
 		Name:      deployment.Name,
 		Namespace: deployment.Namespace,
-		Replicas:  getReplicaCount(deployment.Spec.Replicas),
+		Replicas:  utils.K8sHelpers.GetReplicaCount(deployment.Spec.Replicas),
 		Ready:     deployment.Status.ReadyReplicas,
 		Updated:   deployment.Status.UpdatedReplicas,
 		Available: deployment.Status.AvailableReplicas,
 		Age:       formatAge(deployment.CreationTimestamp.Time),
-		Image:     getMainContainerImage(deployment),
+		Image:     utils.K8sHelpers.GetMainContainerImage(deployment),
 		Labels:    deployment.Labels,
 	}
 
-	ctx.SetContentType("application/json")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	if err := json.NewEncoder(ctx).Encode(summary); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		fmt.Fprintf(ctx, `{"error": "Failed to encode response"}`)
-	}
+	utils.HTTP.JSONResponse(ctx, fasthttp.StatusOK, summary)
 }
 
 // handlePodByName returns a specific pod by name from informer cache
 func handlePodByName(ctx *fasthttp.RequestCtx, name string) {
 	pod, found := informer.GetPodByName(name)
 	if !found || pod == nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		fmt.Fprintf(ctx, `{"error": "Pod not found"}`)
+		utils.HTTP.NotFound(ctx, "Pod not found")
 		return
 	}
 
@@ -254,47 +209,17 @@ func handlePodByName(ctx *fasthttp.RequestCtx, name string) {
 		Namespace: pod.Namespace,
 		Phase:     string(pod.Status.Phase),
 		Ready:     getPodReadyStatus(pod),
-		Restarts:  getPodRestartCount(pod),
+		Restarts:  int(utils.K8sHelpers.GetPodRestartCount(pod)),
 		Age:       formatAge(pod.CreationTimestamp.Time),
-		Image:     getMainPodImage(pod),
+		Image:     utils.K8sHelpers.GetMainPodImage(pod),
 		Node:      pod.Spec.NodeName,
 		Labels:    pod.Labels,
 	}
 
-	ctx.SetContentType("application/json")
-	ctx.SetStatusCode(fasthttp.StatusOK)
-
-	if err := json.NewEncoder(ctx).Encode(summary); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		fmt.Fprintf(ctx, `{"error": "Failed to encode response"}`)
-	}
+	utils.HTTP.JSONResponse(ctx, fasthttp.StatusOK, summary)
 }
 
-// Helper functions
-
-// getReplicaCount safely gets replica count from pointer
-func getReplicaCount(replicas *int32) int32 {
-	if replicas == nil {
-		return 0
-	}
-	return *replicas
-}
-
-// getMainContainerImage gets the image of the first container in deployment
-func getMainContainerImage(deployment *appsv1.Deployment) string {
-	if len(deployment.Spec.Template.Spec.Containers) > 0 {
-		return deployment.Spec.Template.Spec.Containers[0].Image
-	}
-	return "unknown"
-}
-
-// getMainPodImage gets the image of the first container in pod
-func getMainPodImage(pod *corev1.Pod) string {
-	if len(pod.Spec.Containers) > 0 {
-		return pod.Spec.Containers[0].Image
-	}
-	return "unknown"
-}
+// Helper functions specific to server package
 
 // getPodReadyStatus returns ready status as "ready/total" string
 func getPodReadyStatus(pod *corev1.Pod) string {
@@ -308,15 +233,6 @@ func getPodReadyStatus(pod *corev1.Pod) string {
 	}
 
 	return fmt.Sprintf("%d/%d", ready, total)
-}
-
-// getPodRestartCount gets total restart count for all containers
-func getPodRestartCount(pod *corev1.Pod) int {
-	totalRestarts := 0
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		totalRestarts += int(containerStatus.RestartCount)
-	}
-	return totalRestarts
 }
 
 // formatAge formats time duration as human-readable age

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/valyala/fasthttp"
@@ -59,8 +60,8 @@ func TestHandleNotFound(t *testing.T) {
 	}
 
 	// Check response body contains the path
-	body := string(ctx.Response.Body())
-	expected := "404 Not Found: /not-found"
+	body := strings.TrimSpace(string(ctx.Response.Body()))
+	expected := `{"error":"Not Found","message":"404 Not Found: /not-found not found"}`
 	if body != expected {
 		t.Errorf("Expected '%s', got '%s'", expected, body)
 	}
@@ -75,9 +76,9 @@ func TestHandleRequests(t *testing.T) {
 		status   int
 	}{
 		{"Health endpoint GET", "/health", "GET", "OK", 200},
-		{"Health endpoint POST - not allowed", "/health", "POST", "Method Not Allowed", 405},
+		{"Health endpoint POST - not allowed", "/health", "POST", `{"error":"Method Not Allowed","message":"Method POST is not allowed for this endpoint"}`, 405},
 		{"Root endpoint", "/", "GET", "Hello from k8s-ctrl FastHTTP server!", 200},
-		{"Unknown endpoint", "/unknown", "GET", "404 Not Found: /unknown", 404},
+		{"Unknown endpoint", "/unknown", "GET", `{"error":"Not Found","message":"404 Not Found: /unknown not found"}`, 404},
 	}
 
 	for _, tt := range tests {
@@ -94,7 +95,7 @@ func TestHandleRequests(t *testing.T) {
 			}
 
 			// Check response body
-			body := string(ctx.Response.Body())
+			body := strings.TrimSpace(string(ctx.Response.Body()))
 			if body != tt.expected {
 				t.Errorf("Expected '%s', got '%s'", tt.expected, body)
 			}

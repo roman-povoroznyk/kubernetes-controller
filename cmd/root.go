@@ -22,8 +22,14 @@ var RootCmd = &cobra.Command{
 	Long:    `k8s-ctrl is a command-line tool to interact with your Kubernetes cluster, allowing you to manage resources like Pods.`,
 	Version: appVersion,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if err := setupLogging(); err != nil {
+		if err := SetupLogging(); err != nil {
 			return err
+		}
+
+		// Skip Kubernetes client initialization for server command 
+		// because it will handle its own authentication (including in-cluster)
+		if cmd.Name() == "server" {
+			return nil
 		}
 
 		if Clientset != nil {
@@ -79,7 +85,7 @@ func initViper() {
 	viper.AutomaticEnv()
 }
 
-func setupLogging() error {
+func SetupLogging() error {
 	logLevelStr := viper.GetString("log-level")
 	level, err := zerolog.ParseLevel(logLevelStr)
 	if err != nil {
@@ -91,5 +97,8 @@ func setupLogging() error {
 		Out:        os.Stdout,
 		TimeFormat: "15:04:05",
 	})
+
+	// Debug: показати поточний рівень логування
+	log.Info().Str("level", logLevelStr).Msg("Log level configured")
 	return nil
 }
