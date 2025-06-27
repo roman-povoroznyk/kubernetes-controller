@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/roman-povoroznyk/kubernetes-controller)](https://goreportcard.com/report/github.com/roman-povoroznyk/kubernetes-controller)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A modern Kubernetes CLI tool and HTTP server for managing resources with real-time event monitoring using controller-runtime.
+A production-ready Kubernetes CLI tool and HTTP server for managing resources with real-time event monitoring using controller-runtime.
 
 ## Features
 
@@ -12,9 +12,11 @@ A modern Kubernetes CLI tool and HTTP server for managing resources with real-ti
 - **Real-time Monitoring**: Watch Kubernetes events with structured logging
 - **Controller Runtime**: Production-ready event handling using `sigs.k8s.io/controller-runtime`
 - **High Availability**: Leader election with automatic failover for production deployments
-- **REST API**: Query resource information via HTTP endpoints
+- **REST API**: Query resource information via HTTP endpoints with structured error handling
 - **Multiple Authentication**: Supports kubeconfig files and in-cluster authentication
-- **Observability**: Structured logging, metrics endpoint, and unique request IDs
+- **Observability**: Structured logging, metrics endpoint (/metrics), health checks (/health), and unique request IDs
+- **Performance**: FastHTTP server with optimized handlers and connection pooling
+- **Production Ready**: Comprehensive error handling, resource management, and deployment automation
 
 ## Quick Start
 
@@ -28,16 +30,22 @@ make build
 ./k8s-ctrl list deployment
 
 # Start HTTP server with event monitoring
-./k8s-ctrl server --server-port 8080
+./k8s-ctrl server --server-port 8080 --metrics-port 8081
 
 # Start with leader election for production
-./k8s-ctrl server --enable-leader-election --metrics-port 8081
+./k8s-ctrl server --enable-leader-election --enable-controller
 
 # Check server health
 curl http://localhost:8080/health
 
 # Check controller metrics
 curl http://localhost:8081/metrics
+
+# Query deployments via REST API
+curl http://localhost:8080/deployments
+
+# Query pods via REST API
+curl http://localhost:8080/pods
 ```
 
 ## Installation
@@ -79,9 +87,57 @@ helm install k8s-ctrl ./charts/k8s-ctrl
 # Deploy with custom values for production
 helm install k8s-ctrl ./charts/k8s-ctrl \
   --set replicaCount=3 \
-  --set leaderElection.enabled=true \
-  --set leaderElection.namespace=kube-system \
-  --set metrics.port=8081
+  --set env.LOG_LEVEL=info \
+  --set resources.requests.cpu=200m \
+  --set resources.requests.memory=256Mi
+
+# Build and deploy local Docker image in minikube
+make docker-build
+minikube image load k8s-ctrl:latest
+helm upgrade k8s-ctrl ./charts/k8s-ctrl --set image.pullPolicy=Never
+```
+
+## Production Deployment
+
+### ✅ Verified Production Features
+
+- **High Availability**: Leader election support for multi-replica deployments
+- **Health Monitoring**: `/health` endpoint with configurable liveness/readiness probes
+- **Metrics & Observability**: Prometheus metrics at `/metrics` (port 8081)
+- **Structured Logging**: JSON-formatted logs with configurable levels
+- **Graceful Shutdown**: SIGTERM handling and resource cleanup
+- **Resource Management**: Production-ready container limits and requests
+- **Error Handling**: Consistent JSON error responses across all endpoints
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check for liveness/readiness probes |
+| `/metrics` | GET | Prometheus metrics (port 8081) |
+| `/deployments` | GET | List all deployments |
+| `/deployments/names` | GET | Get deployment names only |
+| `/deployments/{name}` | GET | Get specific deployment |
+| `/pods` | GET | List all pods |
+| `/pods/names` | GET | Get pod names only |
+| `/pods/{name}` | GET | Get specific pod |
+
+### Testing the Deployment
+
+```bash
+# Port forward to access the service
+kubectl port-forward service/k8s-controller-k8s-ctrl 8080:8080
+
+# Test health endpoint
+curl http://localhost:8080/health
+
+# Test API endpoints
+curl http://localhost:8080/deployments
+curl http://localhost:8080/pods
+
+# Check metrics (separate port)
+kubectl port-forward service/k8s-controller-k8s-ctrl 8081:8081
+curl http://localhost:8081/metrics
 ```
 
 ## Usage

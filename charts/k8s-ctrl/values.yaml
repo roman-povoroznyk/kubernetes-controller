@@ -1,14 +1,15 @@
 image:
-  repository: ghcr.io/rpovoroznyk/k8s-ctrl
-  tag: "0.0.0"
-  pullPolicy: IfNotPresent
+  repository: k8s-ctrl
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 1
 
 env:
   LOG_LEVEL: info
 
-args: []
+args:
+  - --in-cluster
 
 resources:
   requests:
@@ -26,15 +27,19 @@ livenessProbe:
   httpGet:
     path: /health
     port: http
-  initialDelaySeconds: 5
+  initialDelaySeconds: 45
   periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
 
 readinessProbe:
   httpGet:
     path: /health
     port: http
-  initialDelaySeconds: 2
+  initialDelaySeconds: 40
   periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
 
 volumeMounts: []
 volumes: []

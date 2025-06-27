@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/roman-povoroznyk/kubernetes-controller/internal/utils"
 	"github.com/valyala/fasthttp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +57,7 @@ func TestGetReplicaCountHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getReplicaCount(tt.replicas)
+			result := utils.K8sHelpers.GetReplicaCount(tt.replicas)
 			if result != tt.expected {
 				t.Errorf("Expected %d, got %d", tt.expected, result)
 			}
@@ -78,7 +79,7 @@ func TestGetMainContainerImageHandler(t *testing.T) {
 			},
 		}
 
-		result := getMainContainerImage(deployment)
+		result := utils.K8sHelpers.GetMainContainerImage(deployment)
 		if result != "nginx:latest" {
 			t.Errorf("Expected 'nginx:latest', got '%s'", result)
 		}
@@ -95,7 +96,7 @@ func TestGetMainContainerImageHandler(t *testing.T) {
 			},
 		}
 
-		result := getMainContainerImage(deployment)
+		result := utils.K8sHelpers.GetMainContainerImage(deployment)
 		if result != "unknown" {
 			t.Errorf("Expected 'unknown', got '%s'", result)
 		}
@@ -112,7 +113,7 @@ func TestGetMainPodImageHandler(t *testing.T) {
 			},
 		}
 
-		result := getMainPodImage(pod)
+		result := utils.K8sHelpers.GetMainPodImage(pod)
 		if result != "redis:alpine" {
 			t.Errorf("Expected 'redis:alpine', got '%s'", result)
 		}
@@ -125,7 +126,7 @@ func TestGetMainPodImageHandler(t *testing.T) {
 			},
 		}
 
-		result := getMainPodImage(pod)
+		result := utils.K8sHelpers.GetMainPodImage(pod)
 		if result != "unknown" {
 			t.Errorf("Expected 'unknown', got '%s'", result)
 		}
@@ -190,7 +191,7 @@ func TestGetPodRestartCountHandler(t *testing.T) {
 			},
 		}
 
-		result := getPodRestartCount(pod)
+		result := int(utils.K8sHelpers.GetPodRestartCount(pod))
 		if result != 5 {
 			t.Errorf("Expected 5, got %d", result)
 		}
@@ -206,7 +207,7 @@ func TestGetPodRestartCountHandler(t *testing.T) {
 			},
 		}
 
-		result := getPodRestartCount(pod)
+		result := int(utils.K8sHelpers.GetPodRestartCount(pod))
 		if result != 0 {
 			t.Errorf("Expected 0, got %d", result)
 		}

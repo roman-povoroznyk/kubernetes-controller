@@ -41,11 +41,14 @@ func Start(config Config) error {
 
 	// Run server in goroutine
 	go func() {
+		log.Info().Str("address", addr).Msg("FastHTTP server starting to listen and serve")
 		if err := server.ListenAndServe(addr); err != nil {
 			log.Error().Err(err).Msg("Error in FastHTTP server")
 		}
 		close(serverClosed)
 	}()
+
+	log.Info().Str("address", addr).Msg("FastHTTP server goroutine started successfully")
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
