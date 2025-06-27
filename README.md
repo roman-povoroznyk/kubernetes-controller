@@ -111,7 +111,7 @@ curl http://localhost:8080/deployments
 
 #### Pod Information
 ```bash
-# Get pod names only  
+# Get pod names only
 curl http://localhost:8080/pods/names
 # Response: ["nginx-7584b6f84c-vnbv8", "api-server-abc123-xyz"]
 
@@ -126,7 +126,7 @@ curl http://localhost:8080/pods
 curl http://localhost:8080/deployments/nginx
 # Response: Detailed deployment object for 'nginx'
 
-# Get specific pod by name  
+# Get specific pod by name
 curl http://localhost:8080/pods/nginx-7584b6f84c-vnbv8
 # Response: Detailed pod object for the specified pod
 ```
@@ -156,7 +156,7 @@ All endpoints return JSON with structured data:
 ```json
 {
   "name": "nginx-7584b6f84c-vnbv8",
-  "namespace": "default", 
+  "namespace": "default",
   "phase": "Running",
   "ready": "1/1",
   "restarts": 0,
@@ -171,7 +171,7 @@ All endpoints return JSON with structured data:
 ```
 
 **Note:** API endpoints only return data from resources that are actively watched by the informers. Make sure the appropriate informers are enabled (--enable-deployment-informer, --enable-pod-informer) when starting the server.
-````markdown
+
 
 ### Version information
 

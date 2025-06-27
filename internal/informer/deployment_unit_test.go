@@ -36,7 +36,7 @@ func TestDeploymentHelperFunctions(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getMainContainerImage(deployment)
 		if result != "nginx:latest" {
 			t.Errorf("Expected 'nginx:latest', got '%s'", result)
@@ -53,7 +53,7 @@ func TestDeploymentHelperFunctions(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getMainContainerImage(deployment)
 		if result != "unknown" {
 			t.Errorf("Expected 'unknown', got '%s'", result)

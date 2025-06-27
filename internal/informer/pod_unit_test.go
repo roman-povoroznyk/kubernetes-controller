@@ -16,7 +16,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getMainPodImage(pod)
 		if result != "nginx:latest" {
 			t.Errorf("Expected 'nginx:latest', got '%s'", result)
@@ -29,7 +29,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				Containers: []corev1.Container{},
 			},
 		}
-		
+
 		result := getMainPodImage(pod)
 		if result != "unknown" {
 			t.Errorf("Expected 'unknown', got '%s'", result)
@@ -47,7 +47,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodReadyCondition(pod)
 		if !result {
 			t.Error("Expected pod to be ready")
@@ -65,7 +65,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodReadyCondition(pod)
 		if result {
 			t.Error("Expected pod to not be ready")
@@ -78,7 +78,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				Conditions: []corev1.PodCondition{},
 			},
 		}
-		
+
 		result := getPodReadyCondition(pod)
 		if result {
 			t.Error("Expected pod to not be ready when no conditions")
@@ -94,7 +94,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodRestartCount(pod)
 		if result != 5 {
 			t.Errorf("Expected 5 restarts, got %d", result)
@@ -107,7 +107,7 @@ func TestPodHelperFunctions(t *testing.T) {
 				ContainerStatuses: []corev1.ContainerStatus{},
 			},
 		}
-		
+
 		result := getPodRestartCount(pod)
 		if result != 0 {
 			t.Errorf("Expected 0 restarts, got %d", result)

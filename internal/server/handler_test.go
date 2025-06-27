@@ -11,7 +11,7 @@ import (
 
 func TestFormatAge(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name     string
 		timeAgo  time.Duration
@@ -22,12 +22,12 @@ func TestFormatAge(t *testing.T) {
 		{"2 hours", 2 * time.Hour, "2h"},
 		{"3 days", 72 * time.Hour, "3d"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testTime := now.Add(-tt.timeAgo)
 			result := formatAge(testTime)
-			
+
 			// For seconds test, we accept 29s-31s range due to timing
 			if tt.name == "30 seconds" {
 				if result != "29s" && result != "30s" && result != "31s" {
@@ -35,7 +35,7 @@ func TestFormatAge(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if result != tt.expected {
 				t.Errorf("Expected %s, got %s", tt.expected, result)
 			}
@@ -53,7 +53,7 @@ func TestGetReplicaCountHandler(t *testing.T) {
 		{"zero replicas", int32Ptr(0), 0},
 		{"positive replicas", int32Ptr(3), 3},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := getReplicaCount(tt.replicas)
@@ -77,13 +77,13 @@ func TestGetMainContainerImageHandler(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getMainContainerImage(deployment)
 		if result != "nginx:latest" {
 			t.Errorf("Expected 'nginx:latest', got '%s'", result)
 		}
 	})
-	
+
 	t.Run("without containers", func(t *testing.T) {
 		deployment := &appsv1.Deployment{
 			Spec: appsv1.DeploymentSpec{
@@ -94,7 +94,7 @@ func TestGetMainContainerImageHandler(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getMainContainerImage(deployment)
 		if result != "unknown" {
 			t.Errorf("Expected 'unknown', got '%s'", result)
@@ -111,20 +111,20 @@ func TestGetMainPodImageHandler(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getMainPodImage(pod)
 		if result != "redis:alpine" {
 			t.Errorf("Expected 'redis:alpine', got '%s'", result)
 		}
 	})
-	
+
 	t.Run("without containers", func(t *testing.T) {
 		pod := &corev1.Pod{
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{},
 			},
 		}
-		
+
 		result := getMainPodImage(pod)
 		if result != "unknown" {
 			t.Errorf("Expected 'unknown', got '%s'", result)
@@ -142,13 +142,13 @@ func TestGetPodReadyStatus(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodReadyStatus(pod)
 		if result != "2/2" {
 			t.Errorf("Expected '2/2', got '%s'", result)
 		}
 	})
-	
+
 	t.Run("mixed ready containers", func(t *testing.T) {
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
@@ -158,20 +158,20 @@ func TestGetPodReadyStatus(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodReadyStatus(pod)
 		if result != "1/2" {
 			t.Errorf("Expected '1/2', got '%s'", result)
 		}
 	})
-	
+
 	t.Run("no containers", func(t *testing.T) {
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{},
 			},
 		}
-		
+
 		result := getPodReadyStatus(pod)
 		if result != "0/0" {
 			t.Errorf("Expected '0/0', got '%s'", result)
@@ -189,13 +189,13 @@ func TestGetPodRestartCountHandler(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodRestartCount(pod)
 		if result != 5 {
 			t.Errorf("Expected 5, got %d", result)
 		}
 	})
-	
+
 	t.Run("no restarts", func(t *testing.T) {
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
@@ -205,7 +205,7 @@ func TestGetPodRestartCountHandler(t *testing.T) {
 				},
 			},
 		}
-		
+
 		result := getPodRestartCount(pod)
 		if result != 0 {
 			t.Errorf("Expected 0, got %d", result)
@@ -227,15 +227,15 @@ func TestAPIEndpoints(t *testing.T) {
 		{"POST to deployments (not allowed)", "/deployments", "POST", 405},
 		{"PUT to pods (not allowed)", "/pods", "PUT", 405},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := &fasthttp.RequestCtx{}
 			ctx.Request.SetRequestURI(tt.path)
 			ctx.Request.Header.SetMethod(tt.method)
-			
+
 			HandleRequests(ctx)
-			
+
 			if ctx.Response.StatusCode() != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, ctx.Response.StatusCode())
 			}
@@ -261,7 +261,7 @@ func TestIndividualResourceEndpoints(t *testing.T) {
 			},
 		},
 		{
-			name:           "Get deployment by name - not found", 
+			name:           "Get deployment by name - not found",
 			path:           "/deployments/nonexistent",
 			method:         "GET",
 			expectedStatus: 404,
@@ -292,14 +292,14 @@ func TestIndividualResourceEndpoints(t *testing.T) {
 			path:           "/deployments/test-deployment",
 			method:         "POST",
 			expectedStatus: 405,
-			setupMock: func() {},
+			setupMock:      func() {},
 		},
 		{
 			name:           "PUT to individual pod - not allowed",
 			path:           "/pods/test-pod",
 			method:         "PUT",
 			expectedStatus: 405,
-			setupMock: func() {},
+			setupMock:      func() {},
 		},
 	}
 

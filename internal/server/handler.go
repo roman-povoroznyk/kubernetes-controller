@@ -103,27 +103,27 @@ func handleNotFound(ctx *fasthttp.RequestCtx) {
 
 // Deployment response structures
 type DeploymentSummary struct {
-	Name        string            `json:"name"`
-	Namespace   string            `json:"namespace"`
-	Replicas    int32             `json:"replicas"`
-	Ready       int32             `json:"ready"`
-	Updated     int32             `json:"updated"`
-	Available   int32             `json:"available"`
-	Age         string            `json:"age"`
-	Image       string            `json:"image"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Replicas  int32             `json:"replicas"`
+	Ready     int32             `json:"ready"`
+	Updated   int32             `json:"updated"`
+	Available int32             `json:"available"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	Labels    map[string]string `json:"labels,omitempty"`
 }
 
 type PodSummary struct {
-	Name        string            `json:"name"`
-	Namespace   string            `json:"namespace"`
-	Phase       string            `json:"phase"`
-	Ready       string            `json:"ready"`
-	Restarts    int               `json:"restarts"`
-	Age         string            `json:"age"`
-	Image       string            `json:"image"`
-	Node        string            `json:"node,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Phase     string            `json:"phase"`
+	Ready     string            `json:"ready"`
+	Restarts  int               `json:"restarts"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	Node      string            `json:"node,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
 }
 
 // handleDeployments returns full deployment information from informer cache
