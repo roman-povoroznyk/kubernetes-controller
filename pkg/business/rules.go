@@ -68,3 +68,19 @@ func resourceLimitsRule(deployment *appsv1.Deployment) error {
 	}
 	return nil
 }
+
+import "kubernetes-controller/pkg/metrics"
+
+// ValidateDeployment validates deployment against all rules with metrics
+func (re *RuleEngine) ValidateDeploymentWithMetrics(deployment *appsv1.Deployment) error {
+	for _, rule := range re.rules {
+		if err := rule.Func(deployment); err != nil {
+			log.Error().Err(err).Str("rule", rule.Name).Msg("Business rule validation failed")
+			metrics.RecordBusinessRuleValidation(rule.Name, "failed", deployment.Namespace)
+			return fmt.Errorf("rule %s failed: %w", rule.Name, err)
+		}
+		metrics.RecordBusinessRuleValidation(rule.Name, "passed", deployment.Namespace)
+	}
+	log.Info().Str("deployment", deployment.Name).Msg("All business rules passed")
+	return nil
+}
