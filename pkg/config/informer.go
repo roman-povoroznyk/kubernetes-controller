@@ -111,19 +111,52 @@ func LoadConfig(configFile string) (*Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	
 	// Explicitly bind environment variables
-	v.BindEnv("log_level", "K6S_LOG_LEVEL")
-	v.BindEnv("informer.resync_period", "K6S_INFORMER_RESYNC_PERIOD")
-	v.BindEnv("informer.namespace", "K6S_INFORMER_NAMESPACE")
-	v.BindEnv("informer.enable_custom_logic", "K6S_INFORMER_ENABLE_CUSTOM_LOGIC")
-	v.BindEnv("informer.kubectl_style", "K6S_INFORMER_KUBECTL_STYLE")
-	v.BindEnv("informer.label_selector", "K6S_INFORMER_LABEL_SELECTOR")
-	v.BindEnv("informer.field_selector", "K6S_INFORMER_FIELD_SELECTOR")
-	v.BindEnv("informer.worker_pool_size", "K6S_INFORMER_WORKER_POOL_SIZE")
-	v.BindEnv("informer.queue_size", "K6S_INFORMER_QUEUE_SIZE")
-	v.BindEnv("watch.poll_interval", "K6S_WATCH_POLL_INTERVAL")
-	v.BindEnv("watch.timeout", "K6S_WATCH_TIMEOUT")
-	v.BindEnv("watch.max_retries", "K6S_WATCH_MAX_RETRIES")
-	v.BindEnv("watch.retry_backoff", "K6S_WATCH_RETRY_BACKOFF")
+	var bindErrors []string
+	
+	if err := v.BindEnv("log_level", "K6S_LOG_LEVEL"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("log_level: %v", err))
+	}
+	if err := v.BindEnv("informer.resync_period", "K6S_INFORMER_RESYNC_PERIOD"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.resync_period: %v", err))
+	}
+	if err := v.BindEnv("informer.namespace", "K6S_INFORMER_NAMESPACE"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.namespace: %v", err))
+	}
+	if err := v.BindEnv("informer.enable_custom_logic", "K6S_INFORMER_ENABLE_CUSTOM_LOGIC"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.enable_custom_logic: %v", err))
+	}
+	if err := v.BindEnv("informer.kubectl_style", "K6S_INFORMER_KUBECTL_STYLE"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.kubectl_style: %v", err))
+	}
+	if err := v.BindEnv("informer.label_selector", "K6S_INFORMER_LABEL_SELECTOR"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.label_selector: %v", err))
+	}
+	if err := v.BindEnv("informer.field_selector", "K6S_INFORMER_FIELD_SELECTOR"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.field_selector: %v", err))
+	}
+	if err := v.BindEnv("informer.worker_pool_size", "K6S_INFORMER_WORKER_POOL_SIZE"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.worker_pool_size: %v", err))
+	}
+	if err := v.BindEnv("informer.queue_size", "K6S_INFORMER_QUEUE_SIZE"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("informer.queue_size: %v", err))
+	}
+	if err := v.BindEnv("watch.poll_interval", "K6S_WATCH_POLL_INTERVAL"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("watch.poll_interval: %v", err))
+	}
+	if err := v.BindEnv("watch.timeout", "K6S_WATCH_TIMEOUT"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("watch.timeout: %v", err))
+	}
+	if err := v.BindEnv("watch.max_retries", "K6S_WATCH_MAX_RETRIES"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("watch.max_retries: %v", err))
+	}
+	if err := v.BindEnv("watch.retry_backoff", "K6S_WATCH_RETRY_BACKOFF"); err != nil {
+		bindErrors = append(bindErrors, fmt.Sprintf("watch.retry_backoff: %v", err))
+	}
+	
+	// If there were any binding errors, return them
+	if len(bindErrors) > 0 {
+		return nil, fmt.Errorf("failed to bind environment variables: %s", strings.Join(bindErrors, ", "))
+	}
 	
 	// Set defaults
 	v.SetDefault("informer.resync_period", "10m")

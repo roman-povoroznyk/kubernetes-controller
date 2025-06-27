@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Version = "v0.7.2"
+var Version = "v0.8.0"
 var logLevel string
 var configFile string
 var appConfig *config.Config

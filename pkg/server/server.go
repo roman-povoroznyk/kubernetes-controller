@@ -3,15 +3,18 @@ package server
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/kubernetes"
 	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/logger"
 	"github.com/valyala/fasthttp"
 )
 
 // Server represents the HTTP server
 type Server struct {
-	port int
+	port              int
+	deploymentHandler *DeploymentHandler
 }
 
 // New creates a new server instance
@@ -19,6 +22,11 @@ func New(port int) *Server {
 	return &Server{
 		port: port,
 	}
+}
+
+// SetDeploymentInformer sets the deployment informer for API endpoints
+func (s *Server) SetDeploymentInformer(informer *kubernetes.DeploymentInformer) {
+	s.deploymentHandler = NewDeploymentHandler(informer)
 }
 
 // Start starts the HTTP server
@@ -29,11 +37,19 @@ func (s *Server) Start() error {
 
 	// Create request handler with logging middleware
 	requestHandler := s.loggingMiddleware(func(ctx *fasthttp.RequestCtx) {
-		switch string(ctx.Path()) {
-		case "/health":
+		path := string(ctx.Path())
+		
+		switch {
+		case path == "/health":
 			s.handleHealth(ctx)
-		case "/version":
+		case path == "/version":
 			s.handleVersion(ctx)
+		case strings.HasPrefix(path, "/api/v1/deployments"):
+			if s.deploymentHandler != nil {
+				s.deploymentHandler.HandleDeployments(ctx)
+			} else {
+				s.handleServiceUnavailable(ctx, "Deployment informer not configured")
+			}
 		default:
 			s.handleNotFound(ctx)
 		}
@@ -59,7 +75,7 @@ func (s *Server) handleHealth(ctx *fasthttp.RequestCtx) {
 func (s *Server) handleVersion(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetContentType("application/json")
-	fmt.Fprintf(ctx, `{"version":"v0.5.1"}`)
+	fmt.Fprintf(ctx, `{"version":"v0.8.0"}`)
 }
 
 // handleNotFound handles 404 responses
@@ -67,6 +83,13 @@ func (s *Server) handleNotFound(ctx *fasthttp.RequestCtx) {
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
 	ctx.SetContentType("application/json")
 	fmt.Fprintf(ctx, `{"error":"not found"}`)
+}
+
+// handleServiceUnavailable handles 503 responses
+func (s *Server) handleServiceUnavailable(ctx *fasthttp.RequestCtx, message string) {
+	ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+	ctx.SetContentType("application/json")
+	fmt.Fprintf(ctx, `{"error":"service unavailable","message":"%s"}`, message)
 }
 
 // loggingMiddleware logs HTTP requests

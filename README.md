@@ -9,7 +9,8 @@ A Golang CLI application for managing Kubernetes deployments with informers and 
 - FastHTTP server for API endpoints
 - Kubernetes client-go integration
 - Real-time deployment informers
-- JSON API for deployment data
+- **JSON API for deployment data**
+- **REST endpoints for deployment resources**
 - Controller-runtime based controllers
 - Leader election support
 - Metrics endpoint
@@ -66,6 +67,11 @@ k6s deployment delete api --namespace=prod
 k6s server
 k6s server --port 9090
 
+# Start server with deployment informer for API endpoints
+k6s server --enable-informer
+k6s server --enable-informer --namespace=production
+k6s server --enable-informer --port 9090 --resync-period=5m
+
 # Use environment variables
 K6S_LOG_LEVEL=debug k6s version
 K6S_SERVER_PORT=8081 k6s server
@@ -75,6 +81,35 @@ helm install k6s ./charts/k6s
 kubectl port-forward svc/k6s 8080:8080
 curl http://localhost:8080/health
 ```
+
+## API Endpoints
+
+When the server is started with `--enable-informer`, it provides REST API endpoints for deployment resources:
+
+```bash
+# Check server health
+curl http://localhost:8080/health
+
+# Get server version
+curl http://localhost:8080/version
+
+# List all deployments from informer cache
+curl http://localhost:8080/api/v1/deployments
+
+# List deployments in specific namespace
+curl http://localhost:8080/api/v1/deployments?namespace=production
+
+# Get specific deployment (default namespace)
+curl http://localhost:8080/api/v1/deployments/my-app
+
+# Get specific deployment (custom namespace)
+curl http://localhost:8080/api/v1/deployments/production/api-server
+
+# Monitor deployments with jq
+curl -s http://localhost:8080/api/v1/deployments | jq '.items[] | {name, namespace, replicas, ready}'
+```
+
+See [API Documentation](docs/api.md) for detailed endpoint information and examples.
 
 ## Custom Logic for Deployment Analysis
 
@@ -264,7 +299,7 @@ make test-coverage-integration
 - [x] **Step 7**: k8s.io/client-go create list/watch informer for Kubernetes deployments, envtest unit tests
 - [x] **Step 7+**: add custom logic function for update/delete events using informers cache search
 - [x] **Step 7++**: use config to setup informers start configuration
-- [ ] **Step 8**: json api handler to request list deployment resources in informer cache storage
+- [x] **Step 8**: json api handler to request list deployment resources in informer cache storage
 
 ### Controller Runtime
 - [ ] **Step 9**: sigs.k8s.io/controller-runtime and controller with logic to report in log each event received

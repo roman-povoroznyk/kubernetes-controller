@@ -15,6 +15,7 @@ func TestNew(t *testing.T) {
 	
 	if server == nil {
 		t.Fatal("New() returned nil")
+		return // This will never be reached, but helps static analysis
 	}
 	
 	if server.port != port {
@@ -70,7 +71,7 @@ func TestServerEndpoints(t *testing.T) {
 		t.Errorf("Version endpoint: expected status %d, got %d", fasthttp.StatusOK, statusCode)
 	}
 	
-	expectedVersion := `{"version":"v0.5.1"}`
+	expectedVersion := `{"version":"v0.8.0"}`
 	if string(body) != expectedVersion {
 		t.Errorf("Version endpoint: expected body %s, got %s", expectedVersion, string(body))
 	}
