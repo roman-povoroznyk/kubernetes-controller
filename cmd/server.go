@@ -15,9 +15,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientconfig"
-	"kubernetes-controller/pkg/api"
-	"kubernetes-controller/pkg/logger"
+	"k8s.io/client-go/tools/clientcmd"
+	"github.com/roman-povoroznyk/k8s/pkg/api"
 )
 
 var serverCmd = &cobra.Command{
@@ -37,11 +36,10 @@ func init() {
 }
 
 func runServer(cmd *cobra.Command, args []string) error {
-	// Setup logger
-	logger.SetupLogger()
+	log.Info().Msg("Starting server")
 
 	// Load kubeconfig
-	config, err := clientconfig.BuildConfigFromFlags("", kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load kubeconfig")
 	}
@@ -98,9 +96,6 @@ func runServer(cmd *cobra.Command, args []string) error {
 	log.Info().Str("address", addr).Msg("Starting HTTP server")
 
 	// Graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	go func() {
 		if err := app.Listen(addr); err != nil {
 			log.Fatal().Err(err).Msg("Server failed to start")

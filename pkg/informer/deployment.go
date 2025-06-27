@@ -2,16 +2,15 @@ package informer
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"kubernetes-controller/pkg/business"
+	"github.com/roman-povoroznyk/k8s/pkg/business"
 )
 
 // DeploymentInformer wraps Kubernetes deployment informer

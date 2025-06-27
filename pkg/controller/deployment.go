@@ -10,8 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"kubernetes-controller/pkg/business"
+	"github.com/roman-povoroznyk/k8s/pkg/business"
 )
 
 // DeploymentReconciler reconciles Deployment objects

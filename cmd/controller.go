@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"net/http"
-	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
@@ -13,14 +12,13 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientconfig"
+	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"kubernetes-controller/pkg/business"
-	"kubernetes-controller/pkg/controller"
-	"kubernetes-controller/pkg/leader"
-	"kubernetes-controller/pkg/logger"
+	"github.com/roman-povoroznyk/k8s/pkg/business"
+	"github.com/roman-povoroznyk/k8s/pkg/controller"
+	"github.com/roman-povoroznyk/k8s/pkg/leader"
 )
 
 var (
@@ -50,8 +48,7 @@ func init() {
 }
 
 func runController(cmd *cobra.Command, args []string) error {
-	// Setup logger
-	logger.SetupLogger()
+	log.Info().Msg("Starting controller")
 
 	metricsAddr, _ := cmd.Flags().GetString("metrics-bind-address")
 	probeAddr, _ := cmd.Flags().GetString("health-probe-bind-address")
@@ -61,7 +58,7 @@ func runController(cmd *cobra.Command, args []string) error {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	// Load kubeconfig for leader election
-	config, err := clientconfig.BuildConfigFromFlags("", kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load kubeconfig")
 	}
@@ -106,8 +103,6 @@ func runController(cmd *cobra.Command, args []string) error {
 func startController(ctx context.Context, metricsAddr, probeAddr string) error {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     "0", // Disable built-in metrics server
-		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         false, // Handled externally
 	})

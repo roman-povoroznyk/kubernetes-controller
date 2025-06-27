@@ -18,10 +18,12 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/roman-povoroznyk/k8s/pkg/business"
 	"github.com/roman-povoroznyk/k8s/pkg/informer"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -49,13 +51,20 @@ func watchDeployments() {
 	}
 
 	// Determine target namespace
-	targetNamespace := namespace
 	if allNamespaces {
-		targetNamespace = ""
+		log.Info().Msg("Watching all namespaces")
+	} else {
+		log.Info().Str("namespace", namespace).Msg("Watching specific namespace")
+	}
+
+	// Load informer config
+	config, err := informer.LoadInformerConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load informer config")
 	}
 
 	// Create deployment informer
-	deploymentInformer := informer.NewDeploymentInformer(clientset, targetNamespace)
+	deploymentInformer := informer.NewDeploymentInformer(clientset, config)
 
 	// Setup context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -81,9 +90,6 @@ func watchDeployments() {
 func init() {
 	rootCmd.AddCommand(watchCmd)
 }
-
-// Додаємо business rules validation
-import "kubernetes-controller/pkg/business"
 
 func addBusinessRulesValidation() {
 	ruleEngine := business.NewRuleEngine()
