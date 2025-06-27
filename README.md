@@ -6,10 +6,9 @@ A lightweight command-line tool for interacting with Kubernetes clusters with a 
 
 - **Pod Management**: Create, delete, and list pods in a Kubernetes cluster
 - **Deployment Management**: Create, delete, and list deployments in a Kubernetes cluster
-- **Deployment Informer**: Real-time monitoring of deployment events with structured logging
-- **Controller Runtime**: Kubernetes controller using sigs.k8s.io/controller-runtime for robust event handling
-- **High-Performance HTTP Server**: FastHTTP-based server with health endpoint and informer integration
-- **Structured Logging**: Detailed request logging with unique request IDs and event tracking
+- **Real-time Event Monitoring**: Watch deployment and pod events with structured logging
+- **Controller Runtime Integration**: Kubernetes controller using sigs.k8s.io/controller-runtime for robust event handling
+- **REST API Server**: High-performance HTTP endpoints for resource information
 - **Graceful Shutdown**: Clean shutdown with configurable timeout
 - **kubectl-like Output**: Familiar output format for Kubernetes operations
 - **Flexible Authentication**: Support for both kubeconfig and in-cluster authentication
@@ -516,13 +515,13 @@ docker run -p 8080:8080 \
 
 ## Key Components
 
-- **Cobra CLI**: Command-line interface for user interaction
-- **Distroless Container**: Minimal, secure container image
-- **FastHTTP Server**: High-performance HTTP server with middleware support and informer integration
-- **Kubernetes Client**: Client-go based Kubernetes API interactions with flexible authentication
-- **Deployment Informer**: Real-time monitoring of Kubernetes deployment events
-- **Request Logging**: Detailed logging with unique request IDs for traceability
-- **Envtest Support**: Comprehensive testing with Kubernetes API server simulation
+- **Cobra CLI**: Command-line interface with subcommands for Kubernetes operations
+- **Controller Runtime**: sigs.k8s.io/controller-runtime manager and reconcilers
+- **FastHTTP Server**: High-performance HTTP server with middleware support
+- **Kubernetes Informers**: Real-time event watchers for deployments and pods
+- **Structured Logging**: Zerolog-based logging with request IDs and contextual information
+- **Distroless Container**: Minimal, secure container image for production deployment
+- **Envtest Integration**: Comprehensive testing with Kubernetes API server simulation
 
 ## License
 
