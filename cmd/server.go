@@ -11,12 +11,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/roman-povoroznyk/k8s/pkg/api"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"github.com/roman-povoroznyk/k8s/pkg/api"
 )
 
 var serverCmd = &cobra.Command{
@@ -28,11 +28,11 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-	
+
 	serverCmd.Flags().String("host", "localhost", "Server host")
 	serverCmd.Flags().Int("port", 8080, "Server port")
-	viper.BindPFlag("server.host", serverCmd.Flags().Lookup("host"))
-	viper.BindPFlag("server.port", serverCmd.Flags().Lookup("port"))
+	_ = viper.BindPFlag("server.host", serverCmd.Flags().Lookup("host"))
+	_ = viper.BindPFlag("server.port", serverCmd.Flags().Lookup("port"))
 }
 
 func runServer(cmd *cobra.Command, args []string) error {
@@ -57,9 +57,9 @@ func runServer(cmd *cobra.Command, args []string) error {
 			if e, ok := err.(*fiber.Error); ok {
 				code = e.Code
 			}
-			
+
 			log.Error().Err(err).Int("status", code).Str("path", c.Path()).Msg("HTTP error")
-			
+
 			return c.Status(code).JSON(api.ErrorResponse{
 				Error:   "Internal Server Error",
 				Code:    code,
@@ -108,7 +108,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 	<-c
 
 	log.Info().Msg("Shutting down server...")
-	
+
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 

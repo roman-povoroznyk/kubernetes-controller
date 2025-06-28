@@ -80,6 +80,6 @@ func (le *LeaderElection) Run(ctx context.Context, onStartedLeading, onStoppedLe
 	// Start leader election
 	log.Info().Str("identity", le.identity).Str("name", le.name).Msg("Starting leader election")
 	leaderelection.RunOrDie(ctx, config)
-	
+
 	return nil
 }

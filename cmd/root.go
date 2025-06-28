@@ -44,9 +44,9 @@ var (
 // rootCmd represents the base command when called without any subcommands.
 // It serves as the entry point for the CLI application.
 var rootCmd = &cobra.Command{
-	Use:   "k8s",
-	Short: "A Kubernetes controller written in Go",
-	Long:  `k8s is a Kubernetes controller built with Cobra CLI library.`,
+	Use:     "k8s",
+	Short:   "A Kubernetes controller written in Go",
+	Long:    `k8s is a Kubernetes controller built with Cobra CLI library.`,
 	Version: Version,
 	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		// Initialize logger for all commands except version
@@ -76,25 +76,25 @@ func init() {
 	// Global persistent flags using pflag (POSIX/GNU style)
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info",
 		"Set the logging level (trace, debug, info, warn, error, fatal, panic)")
-	
+
 	rootCmd.PersistentFlags().StringVar(&kubeconfig, "kubeconfig", "",
 		"Path to kubeconfig file (default: $KUBECONFIG or ~/.kube/config)")
-	
+
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default",
 		"Kubernetes namespace to operate in")
-	
+
 	rootCmd.PersistentFlags().BoolVarP(&allNamespaces, "all-namespaces", "A", false,
 		"If present, list resources across all namespaces")
 
 	// Bind flags to Viper for environment variable support
-	viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
-	viper.BindPFlag("kubeconfig", rootCmd.PersistentFlags().Lookup("kubeconfig"))
-	viper.BindPFlag("namespace", rootCmd.PersistentFlags().Lookup("namespace"))
-	viper.BindPFlag("all-namespaces", rootCmd.PersistentFlags().Lookup("all-namespaces"))
+	_ = viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
+	_ = viper.BindPFlag("kubeconfig", rootCmd.PersistentFlags().Lookup("kubeconfig"))
+	_ = viper.BindPFlag("namespace", rootCmd.PersistentFlags().Lookup("namespace"))
+	_ = viper.BindPFlag("all-namespaces", rootCmd.PersistentFlags().Lookup("all-namespaces"))
 
 	// Configure version output
 	rootCmd.SetVersionTemplate("k8s version {{.Version}}\n")
-	
+
 	// Improve error handling
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
@@ -104,25 +104,25 @@ func init() {
 func initViper() {
 	// Set environment variable prefix
 	viper.SetEnvPrefix("K8S_CONTROLLER")
-	
+
 	// Enable automatic environment variable binding
 	viper.AutomaticEnv()
-	
+
 	// Replace hyphens with underscores in environment variables
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	
+
 	// Set default values
 	viper.SetDefault("log-level", "info")
 	viper.SetDefault("namespace", "default")
 	viper.SetDefault("all-namespaces", false)
-	
+
 	// Look for config file in common locations
 	viper.SetConfigName("k8s")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.k8s")
 	viper.AddConfigPath("/etc/k8s")
-	
+
 	// Read config file if it exists
 	if err := viper.ReadInConfig(); err == nil {
 		log.Info().Str("config", viper.ConfigFileUsed()).Msg("Using config file")

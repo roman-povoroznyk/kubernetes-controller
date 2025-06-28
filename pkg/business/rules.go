@@ -2,8 +2,8 @@ package business
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/roman-povoroznyk/k8s/pkg/metrics"
+	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -69,8 +69,6 @@ func resourceLimitsRule(deployment *appsv1.Deployment) error {
 	}
 	return nil
 }
-
-
 
 // ValidateDeployment validates deployment against all rules with metrics
 func (re *RuleEngine) ValidateDeploymentWithMetrics(deployment *appsv1.Deployment) error {

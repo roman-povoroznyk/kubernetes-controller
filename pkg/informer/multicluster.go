@@ -7,8 +7,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // ClusterConfig represents configuration for a cluster
@@ -100,7 +100,7 @@ func (mcm *MultiClusterManager) Start() error {
 
 	for name, cluster := range mcm.clusters {
 		log.Info().Str("cluster", name).Msg("Starting cluster informers")
-		
+
 		if cluster.DeploymentInformer != nil {
 			go func(ci *ClusterInformers) {
 				if err := ci.DeploymentInformer.Start(ci.ctx); err != nil {

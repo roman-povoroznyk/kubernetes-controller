@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/roman-povoroznyk/k8s/pkg/business"
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"github.com/roman-povoroznyk/k8s/pkg/business"
 )
 
 // DeploymentReconciler reconciles Deployment objects
@@ -73,11 +73,11 @@ func (r *DeploymentReconciler) handleDeploymentLogic(ctx context.Context, deploy
 	if deployment.Annotations["managed-by"] != "kubernetes-controller" {
 		deployment.Annotations["managed-by"] = "kubernetes-controller"
 		deployment.Annotations["managed-at"] = time.Now().Format(time.RFC3339)
-		
+
 		if err := r.Update(ctx, deployment); err != nil {
 			return err
 		}
-		
+
 		log.Info().
 			Str("namespace", deployment.Namespace).
 			Str("name", deployment.Name).

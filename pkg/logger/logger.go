@@ -16,16 +16,16 @@ import (
 func Init(level string) {
 	logLevel := parseLogLevel(level)
 	zerolog.SetGlobalLevel(logLevel)
-	
+
 	// Configure time format for better readability
 	zerolog.TimeFieldFormat = time.RFC3339
-	
+
 	// Use console writer for development
 	consoleWriter := zerolog.ConsoleWriter{
 		Out:        os.Stderr,
 		TimeFormat: "15:04:05",
 	}
-	
+
 	// Set global logger
 	log.Logger = zerolog.New(consoleWriter).With().Timestamp().Logger()
 }

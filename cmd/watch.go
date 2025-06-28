@@ -18,12 +18,10 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/roman-povoroznyk/k8s/pkg/business"
 	"github.com/roman-povoroznyk/k8s/pkg/informer"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -89,37 +87,4 @@ func watchDeployments() {
 
 func init() {
 	rootCmd.AddCommand(watchCmd)
-}
-
-func addBusinessRulesValidation() {
-	ruleEngine := business.NewRuleEngine()
-	// Business rules will be validated in informer handlers
-	_ = ruleEngine
-}
-
-// Multi-cluster support functions
-func startMultiClusterWatch() error {
-	// Load informer config
-	config, err := informer.LoadInformerConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load informer config: %w", err)
-	}
-
-	// Create multi-cluster manager
-	mcm := informer.NewMultiClusterManager(config)
-
-	// Add clusters from configuration
-	clusters := []informer.ClusterConfig{
-		{Name: "default", Enabled: true}, // Use default kubeconfig
-		// Add more clusters from config
-	}
-
-	for _, clusterConfig := range clusters {
-		if err := mcm.AddCluster(clusterConfig); err != nil {
-			log.Error().Err(err).Str("cluster", clusterConfig.Name).Msg("Failed to add cluster")
-		}
-	}
-
-	// Start multi-cluster informers
-	return mcm.Start()
 }

@@ -5,11 +5,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
-	"k8s.io/client-go/kubernetes"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // APIHandler handles API requests
@@ -25,16 +25,16 @@ func NewAPIHandler(clientset kubernetes.Interface) *APIHandler {
 // GetDeployments returns list of deployments
 func (h *APIHandler) GetDeployments(c *fiber.Ctx) error {
 	namespace := c.Query("namespace", "")
-	
+
 	var deployments *appsv1.DeploymentList
 	var err error
-	
+
 	if namespace != "" {
 		deployments, err = h.clientset.AppsV1().Deployments(namespace).List(c.Context(), metav1.ListOptions{})
 	} else {
 		deployments, err = h.clientset.AppsV1().Deployments(metav1.NamespaceAll).List(c.Context(), metav1.ListOptions{})
 	}
-	
+
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list deployments")
 		return c.Status(500).JSON(ErrorResponse{
