@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/roman-povoroznyk/k8s/pkg/business"
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"github.com/roman-povoroznyk/k8s/pkg/business"
 )
 
 // DeploymentInformer wraps Kubernetes deployment informer
 type DeploymentInformer struct {
-	clientset   kubernetes.Interface
-	informer    cache.SharedIndexInformer
-	config      *InformerConfig
-	ruleEngine  *business.RuleEngine
+	clientset  kubernetes.Interface
+	informer   cache.SharedIndexInformer
+	config     *InformerConfig
+	ruleEngine *business.RuleEngine
 }
 
 // NewDeploymentInformer creates a new deployment informer with config
@@ -35,7 +35,7 @@ func NewDeploymentInformer(clientset kubernetes.Interface, config *InformerConfi
 	)
 
 	informer := factory.Apps().V1().Deployments().Informer()
-	
+
 	di := &DeploymentInformer{
 		clientset:  clientset,
 		informer:   informer,
@@ -44,11 +44,15 @@ func NewDeploymentInformer(clientset kubernetes.Interface, config *InformerConfi
 	}
 
 	// Add event handlers
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    di.onAdd,
 		UpdateFunc: di.onUpdate,
 		DeleteFunc: di.onDelete,
 	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to add event handler")
+		return nil
+	}
 
 	return di
 }
@@ -60,7 +64,7 @@ func (di *DeploymentInformer) Start(ctx context.Context) error {
 	}
 
 	log.Info().Msg("Starting deployment informer...")
-	
+
 	go di.informer.Run(ctx.Done())
 
 	// Wait for cache to sync
@@ -74,7 +78,7 @@ func (di *DeploymentInformer) Start(ctx context.Context) error {
 
 func (di *DeploymentInformer) onAdd(obj interface{}) {
 	deployment := obj.(*appsv1.Deployment)
-	
+
 	if !di.config.IsNamespaceWatched(deployment.Namespace) {
 		return
 	}
@@ -92,7 +96,7 @@ func (di *DeploymentInformer) onAdd(obj interface{}) {
 
 func (di *DeploymentInformer) onUpdate(oldObj, newObj interface{}) {
 	deployment := newObj.(*appsv1.Deployment)
-	
+
 	if !di.config.IsNamespaceWatched(deployment.Namespace) {
 		return
 	}
@@ -110,7 +114,7 @@ func (di *DeploymentInformer) onUpdate(oldObj, newObj interface{}) {
 
 func (di *DeploymentInformer) onDelete(obj interface{}) {
 	deployment := obj.(*appsv1.Deployment)
-	
+
 	if !di.config.IsNamespaceWatched(deployment.Namespace) {
 		return
 	}

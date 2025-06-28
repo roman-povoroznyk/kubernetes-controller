@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -148,7 +148,7 @@ func deleteDeployment() {
 	}
 
 	deploymentsClient := clientset.AppsV1().Deployments(namespace)
-	
+
 	deletePolicy := metav1.DeletePropagationForeground
 	deleteOptions := metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
@@ -168,7 +168,7 @@ func deleteDeployment() {
 
 func getKubernetesClient() (*kubernetes.Clientset, error) {
 	var kubeconfigPath string
-	
+
 	if kubeconfig != "" {
 		kubeconfigPath = kubeconfig
 	} else if home := homedir.HomeDir(); home != "" {
@@ -196,9 +196,9 @@ func init() {
 	createCmd.Flags().StringVar(&deploymentName, "name", "", "Name of the deployment (required)")
 	createCmd.Flags().Int32Var(&replicas, "replicas", 1, "Number of replicas")
 	createCmd.Flags().StringVar(&image, "image", "nginx:latest", "Container image")
-	createCmd.MarkFlagRequired("name")
+	_ = createCmd.MarkFlagRequired("name")
 
 	// Delete command flags
 	deleteCmd.Flags().StringVar(&deploymentName, "name", "", "Name of the deployment to delete (required)")
-	deleteCmd.MarkFlagRequired("name")
+	_ = deleteCmd.MarkFlagRequired("name")
 }

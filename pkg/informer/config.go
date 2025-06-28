@@ -1,16 +1,16 @@
 package informer
 
 import (
-	"time"
 	"github.com/spf13/viper"
+	"time"
 )
 
 // InformerConfig holds configuration for informers
 type InformerConfig struct {
-	ResyncPeriod    time.Duration `mapstructure:"resync_period"`
-	Workers         int           `mapstructure:"workers"`
-	EnabledResources []string     `mapstructure:"enabled_resources"`
-	Namespaces      []string      `mapstructure:"namespaces"`
+	ResyncPeriod     time.Duration `mapstructure:"resync_period"`
+	Workers          int           `mapstructure:"workers"`
+	EnabledResources []string      `mapstructure:"enabled_resources"`
+	Namespaces       []string      `mapstructure:"namespaces"`
 }
 
 // LoadInformerConfig loads informer configuration from viper

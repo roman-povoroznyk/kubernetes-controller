@@ -1,8 +1,8 @@
 package api
 
 import (
-	"time"
 	appsv1 "k8s.io/api/apps/v1"
+	"time"
 )
 
 // DeploymentResponse represents API response for deployment
@@ -41,13 +41,11 @@ type ErrorResponse struct {
 
 // FromK8sDeployment converts Kubernetes deployment to API response
 func FromK8sDeployment(dep *appsv1.Deployment) DeploymentResponse {
-	status := "Unknown"
+	status := "Not Ready"
 	if dep.Status.ReadyReplicas == *dep.Spec.Replicas {
 		status = "Ready"
 	} else if dep.Status.ReadyReplicas > 0 {
 		status = "Partially Ready"
-	} else {
-		status = "Not Ready"
 	}
 
 	return DeploymentResponse{

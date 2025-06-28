@@ -5,20 +5,20 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/roman-povoroznyk/k8s/pkg/business"
+	"github.com/roman-povoroznyk/k8s/pkg/controller"
+	"github.com/roman-povoroznyk/k8s/pkg/leader"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"github.com/roman-povoroznyk/k8s/pkg/business"
-	"github.com/roman-povoroznyk/k8s/pkg/controller"
-	"github.com/roman-povoroznyk/k8s/pkg/leader"
 )
 
 var (
@@ -40,7 +40,7 @@ var controllerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(controllerCmd)
-	
+
 	controllerCmd.Flags().String("metrics-bind-address", ":8080", "The address the metric endpoint binds to")
 	controllerCmd.Flags().String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to")
 	controllerCmd.Flags().Bool("leader-elect", false, "Enable leader election for controller manager")
@@ -80,13 +80,15 @@ func runController(cmd *cobra.Command, args []string) error {
 	if enableLeaderElection {
 		// Setup leader election
 		leaderElection := leader.NewLeaderElection(clientset, leaderElectNamespace, "kubernetes-controller")
-		
+
 		ctx := ctrl.SetupSignalHandler()
-		
-		return leaderElection.Run(ctx, 
+
+		return leaderElection.Run(ctx,
 			func(ctx context.Context) {
 				// Start controller when becoming leader
-				startController(ctx, metricsAddr, probeAddr)
+				if err := startController(ctx, metricsAddr, probeAddr); err != nil {
+					log.Error().Err(err).Msg("Failed to start controller")
+				}
 			},
 			func(ctx context.Context) {
 				// Stop controller when losing leadership
