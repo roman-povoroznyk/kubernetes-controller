@@ -72,6 +72,10 @@ var serverCmd = &cobra.Command{
 			LeaderElection:          enableLeaderElection,
 			LeaderElectionID:        "k8s-ctrl-leader-election",
 			LeaderElectionNamespace: leaderElectionNamespace,
+			// Improved leader election configuration for stability
+			LeaseDuration:   &[]time.Duration{60 * time.Second}[0],  // Increased from default 15s
+			RenewDeadline:   &[]time.Duration{50 * time.Second}[0],  // Increased from default 10s
+			RetryPeriod:     &[]time.Duration{10 * time.Second}[0],  // Increased from default 2s
 			Metrics: metricsserver.Options{
 				BindAddress: fmt.Sprintf(":%d", metricsPort),
 			},
@@ -222,13 +226,28 @@ var serverCmd = &cobra.Command{
 
 // getKubernetesConfig returns the Kubernetes configuration for controller-runtime
 func getKubernetesConfig(kubeconfigPath string, inCluster bool) (*rest.Config, error) {
+	var config *rest.Config
+	var err error
+	
 	if inCluster {
-		return rest.InClusterConfig()
+		config, err = rest.InClusterConfig()
+	} else {
+		if kubeconfigPath == "" {
+			kubeconfigPath = clientcmd.RecommendedHomeFile
+		}
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	}
-	if kubeconfigPath == "" {
-		kubeconfigPath = clientcmd.RecommendedHomeFile
+	
+	if err != nil {
+		return nil, err
 	}
-	return clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	
+	// Improve client configuration for better stability
+	config.Timeout = 30 * time.Second     // Increased from default 30s
+	config.QPS = 50                       // Increased from default 20
+	config.Burst = 100                    // Increased from default 30
+	
+	return config, nil
 }
 
 func init() {

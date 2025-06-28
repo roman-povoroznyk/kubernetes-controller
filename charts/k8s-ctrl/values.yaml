@@ -3,13 +3,15 @@ image:
   tag: "latest"
   pullPolicy: Always
 
-replicaCount: 1
+replicaCount: 2
 
 env:
   LOG_LEVEL: info
 
 args:
   - --in-cluster
+  - --enable-leader-election=true
+  - --leader-election-namespace=default
 
 resources:
   requests:
@@ -27,18 +29,18 @@ livenessProbe:
   httpGet:
     path: /health
     port: http
-  initialDelaySeconds: 45
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
+  initialDelaySeconds: 60
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 5
 
 readinessProbe:
   httpGet:
     path: /health
     port: http
-  initialDelaySeconds: 40
-  periodSeconds: 5
-  timeoutSeconds: 3
+  initialDelaySeconds: 45
+  periodSeconds: 10
+  timeoutSeconds: 5
   failureThreshold: 3
 
 volumeMounts: []
