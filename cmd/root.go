@@ -69,8 +69,6 @@ func Execute() {
 }
 
 func init() {
-	// Initialize Viper for environment variables
-
 	// Global persistent flags using pflag (POSIX/GNU style)
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info",
 		"Set the logging level (trace, debug, info, warn, error, fatal, panic)")
@@ -84,26 +82,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&allNamespaces, "all-namespaces", "A", false,
 		"If present, list resources across all namespaces")
 
-	// Bind flags to Viper for environment variable support
-
 	// Configure version output
 	rootCmd.SetVersionTemplate("k8s version {{.Version}}\n")
 	
 	// Improve error handling
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
-}
-
-	// Set environment variable prefix
-	
-	// Enable automatic environment variable binding
-	
-	// Replace hyphens with underscores in environment variables
-	
-	// Set default values
-	
-	// Look for config file in common locations
-	
-	// Read config file if it exists
-	}
 }
