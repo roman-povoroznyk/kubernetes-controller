@@ -155,6 +155,58 @@ When using `--custom-logic`, you'll see additional structured logs for each depl
 {"level":"info","namespace":"default","name":"my-app","handler":"custom_logic","cache_status":"not_found","message":"Deployment deleted with custom analysis"}
 ```
 
+## Controller Features
+
+The k6s controller provides advanced Kubernetes Deployment monitoring with:
+
+### Event Detection
+- **Add Events**: Detected when `generation == 1` (new deployments)
+- **Update Events**: Detected when `generation > 1` (spec changes)
+- **Delete Events**: Detected when object is not found in API
+- **Sync Events**: Status-only updates without spec changes
+
+### Detailed Logging
+- Structured JSON logs with deployment details
+- Change tracking for replicas, images, labels
+- Generation and timestamp information
+- Container image tracking
+- Ready/Updated replica counts
+
+### Configuration Options
+- `--metrics-port`: Configure Prometheus metrics endpoint (default: 8080)
+- `--namespace`: Watch specific namespace (empty = all namespaces)
+- Uses standard kubeconfig for cluster authentication
+- Supports controller-runtime predicates for efficient event filtering
+
+### Usage Examples
+
+```bash
+# Run controller with default settings
+k6s controller
+
+# Run controller with custom metrics port
+k6s controller --metrics-port 9090
+
+# Watch specific namespace
+k6s controller --namespace production
+
+# Monitor metrics endpoint
+curl http://localhost:8080/metrics
+```
+
+### Log Output Examples
+
+```json
+// Add event
+{"level":"info","event":"add","namespace":"default","name":"nginx","replicas":3,"image":"nginx:1.14","generation":1,"created":"2025-07-04T02:30:00Z"}
+
+// Update event
+{"level":"info","event":"update","namespace":"default","name":"nginx","generation":2,"replicas":5,"image":"nginx:1.16","ready_replicas":3,"updated_replicas":5}
+
+// Delete event
+{"level":"info","event":"delete","namespace":"default","name":"nginx","timestamp":"2025-07-04T02:35:00Z"}
+```
+
 ## Configuration
 
 k6s supports configuration via YAML config files, environment variables, and command-line flags. Configuration is loaded in the following order of precedence (highest to lowest):
@@ -302,7 +354,7 @@ make test-coverage-integration
 - [x] **Step 8**: json api handler to request list deployment resources in informer cache storage
 
 ### Controller Runtime
-- [ ] **Step 9**: sigs.k8s.io/controller-runtime and controller with logic to report in log each event received
+- [x] **Step 9**: sigs.k8s.io/controller-runtime and controller with logic to report in log each event received
 - [ ] **Step 9+**: multi-cluster informers, dynamically created informers
 - [ ] **Step 10**: controller mgr to control informer and controller, leader election with lease resource, flag to disable leader election, flag for mgr metrics port
 
