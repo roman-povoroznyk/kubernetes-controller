@@ -1,0 +1,11 @@
+clusters:
+  - name: "local"
+    kubeconfig: ""
+    context: "minikube"
+    server: ""
+    namespace: "default"
+    enabled: true
+    primary: true
+default_namespace: "default"
+connection_timeout: "30s"
+max_concurrent_connections: 10

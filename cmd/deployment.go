@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/config"
 	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/kubernetes"
 	"github.com/spf13/cobra"
 )
@@ -53,22 +54,22 @@ var deploymentListCmd = &cobra.Command{
 
 		if deployWatch {
 			// Get configuration for informer
-			cfg := GetConfig()
-			informerConfig := cfg.Informer
+			cfg, err := config.LoadConfig("")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
+				os.Exit(1)
+			}
 			
 			// Override config values with command line flags if provided
 			if deployNamespace != "default" {
-				informerConfig.Namespace = namespace
-			}
-			if deployCustomLogic {
-				informerConfig.EnableCustomLogic = true
+				cfg.Controller.Single.Namespace = namespace
 			}
 			if deployWatchResync != 30*time.Second {
-				informerConfig.ResyncPeriod = deployWatchResync
+				cfg.Controller.ResyncPeriod = deployWatchResync
 			}
 
 			// Watch mode using informer with config
-			informer := kubernetes.NewDeploymentInformerWithConfig(client.Clientset(), &informerConfig)
+			informer := kubernetes.NewDeploymentInformerWithConfig(client.Clientset(), cfg)
 
 			err = informer.Start()
 			if err != nil {

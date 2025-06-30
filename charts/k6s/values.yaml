@@ -2,9 +2,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/roman-povoroznyk/k6s
+  repository: k6s-controller
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -31,6 +31,8 @@ securityContext:
 service:
   type: ClusterIP
   port: 8080
+  # Health and readiness probes port  
+  healthPort: 8081
 
 ingress:
   enabled: false
@@ -69,8 +71,16 @@ app:
     - controller
     - start
     - --metrics-port=8080
+    - --health-port=8081
+    - --enable-leader-election
     - --log-level=info
 
 # RBAC configuration
 rbac:
   create: true
+
+# Leader election configuration
+leaderElection:
+  enabled: true
+  id: "k6s-controller"
+  namespace: ""  # defaults to release namespace

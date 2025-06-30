@@ -1,0 +1,25 @@
+clusters:
+- name: production-cluster
+  kubeconfig: /path/to/production-kubeconfig
+  context: production-context-name
+  server: https://prod-k8s.example.com
+  namespace: production
+  enabled: true
+  primary: false
+- name: staging-cluster
+  kubeconfig: /path/to/staging-kubeconfig
+  context: staging-context-name
+  server: https://staging-k8s.example.com
+  namespace: staging
+  enabled: true
+  primary: true
+- name: development-cluster
+  kubeconfig: /path/to/dev-kubeconfig
+  context: dev-context-name
+  server: https://dev-k8s.example.com
+  namespace: development
+  enabled: true
+  primary: false
+default_namespace: default
+connection_timeout: 30s
+max_concurrent_connections: 10

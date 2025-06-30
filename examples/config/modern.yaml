@@ -1,0 +1,60 @@
+# Modern k6s Configuration Example
+# This file demonstrates the new unified configuration structure
+
+# Global log level
+log_level: "info"
+
+# Controller configuration
+controller:
+  # Mode: single or multi
+  mode: "single"
+  
+  # Single cluster configuration
+  single:
+    # Namespace to watch (empty = all namespaces)
+    namespace: "production"
+    
+    # Metrics endpoint port
+    metrics_port: 8080
+    
+    # Health check port
+    health_port: 8081
+    
+    # Leader election configuration
+    leader_election:
+      enabled: true
+      id: "k6s-controller"
+      namespace: "default"
+  
+  # Resync period for informers
+  resync_period: "30s"
+
+# Multi-cluster configuration (used when mode is "multi")
+multi_cluster:
+  # Test connectivity when listing clusters
+  test_connectivity: true
+  
+  # Default namespace for operations
+  default_namespace: "default"
+  
+  # Connection timeout for cluster operations
+  connection_timeout: "30s"
+  
+  # Maximum concurrent connections to clusters
+  max_concurrent_connections: 10
+  
+  # Cluster definitions
+  clusters:
+    - name: "production"
+      kubeconfig: "/path/to/production-kubeconfig"
+      context: "production-context"
+      namespace: "production"
+      enabled: true
+      primary: true
+      
+    - name: "staging"
+      kubeconfig: "/path/to/staging-kubeconfig"
+      context: "staging-context"
+      namespace: "staging"
+      enabled: true
+      primary: false

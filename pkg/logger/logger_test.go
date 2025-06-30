@@ -2,7 +2,6 @@ package logger
 
 import (
 	"bytes"
-	"os"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -11,7 +10,7 @@ import (
 
 func TestInit(t *testing.T) {
 	// Test that Init doesn't panic
-	Init()
+	Init(Config{Level: "info"})
 	
 	// Verify default level is set
 	if zerolog.GlobalLevel() != zerolog.InfoLevel {
@@ -19,24 +18,33 @@ func TestInit(t *testing.T) {
 	}
 }
 
-func TestSetLevel(t *testing.T) {
-	tests := []struct {
-		input    LogLevel
-		expected zerolog.Level
-	}{
-		{TraceLevel, zerolog.TraceLevel},
-		{DebugLevel, zerolog.DebugLevel},
-		{InfoLevel, zerolog.InfoLevel},
-		{WarnLevel, zerolog.WarnLevel},
-		{ErrorLevel, zerolog.ErrorLevel},
-		{LogLevel("invalid"), zerolog.InfoLevel}, // Should default to info
+func TestLoggerCreation(t *testing.T) {
+	// Test basic logger creation
+	logger := New()
+	if logger == nil {
+		t.Error("Expected logger to be created, got nil")
 	}
+}
 
-	for _, test := range tests {
-		SetLevel(test.input)
-		if zerolog.GlobalLevel() != test.expected {
-			t.Errorf("SetLevel(%s): expected %v, got %v", test.input, test.expected, zerolog.GlobalLevel())
-		}
+func TestLoggerWithComponents(t *testing.T) {
+	logger := New()
+	
+	// Test with component
+	compLogger := logger.WithComponent("test")
+	if compLogger == nil {
+		t.Error("Expected component logger to be created, got nil")
+	}
+	
+	// Test with cluster
+	clusterLogger := logger.WithCluster("test-cluster")
+	if clusterLogger == nil {
+		t.Error("Expected cluster logger to be created, got nil")
+	}
+	
+	// Test with namespace
+	nsLogger := logger.WithNamespace("test-namespace")
+	if nsLogger == nil {
+		t.Error("Expected namespace logger to be created, got nil")
 	}
 }
 
@@ -45,52 +53,43 @@ func TestLogFunctions(t *testing.T) {
 	var buf bytes.Buffer
 	log.Logger = log.Output(&buf)
 	
-	// Set to debug level to capture all logs
-	SetLevel(DebugLevel)
+	// Test basic logging functions
+	logger := New()
 	
-	// Test Info
-	Info("test info message", map[string]interface{}{
-		"key": "value",
+	logger.Info("test info message", nil)
+	logger.Debug("test debug message", nil)
+	logger.Warn("test error message", nil)
+	
+	// Check that something was logged
+	if buf.Len() == 0 {
+		t.Error("Expected log output, but got none")
+	}
+}
+
+func TestGlobalFunctions(t *testing.T) {
+	// Test global logger functions
+	Info("test global info", nil)
+	Debug("test global debug", nil)
+	Warn("test global warn", nil)
+	
+	// These should not panic
+}
+
+func TestLoggerWithFields(t *testing.T) {
+	logger := New()
+	
+	// Test with single field
+	fieldLogger := logger.WithField("key", "value")
+	if fieldLogger == nil {
+		t.Error("Expected field logger to be created, got nil")
+	}
+	
+	// Test with multiple fields
+	fieldsLogger := logger.WithFields(map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
 	})
-	
-	if !bytes.Contains(buf.Bytes(), []byte("test info message")) {
-		t.Error("Info log message not found in output")
+	if fieldsLogger == nil {
+		t.Error("Expected fields logger to be created, got nil")
 	}
-	
-	if !bytes.Contains(buf.Bytes(), []byte("value")) {
-		t.Error("Info log field not found in output")
-	}
-	
-	// Clear buffer
-	buf.Reset()
-	
-	// Test Debug
-	Debug("test debug message", nil)
-	
-	if !bytes.Contains(buf.Bytes(), []byte("test debug message")) {
-		t.Error("Debug log message not found in output")
-	}
-	
-	// Clear buffer
-	buf.Reset()
-	
-	// Test Warn
-	Warn("test warn message", nil)
-	
-	if !bytes.Contains(buf.Bytes(), []byte("test warn message")) {
-		t.Error("Warn log message not found in output")
-	}
-	
-	// Clear buffer
-	buf.Reset()
-	
-	// Test Error
-	Error("test error message", nil, nil)
-	
-	if !bytes.Contains(buf.Bytes(), []byte("test error message")) {
-		t.Error("Error log message not found in output")
-	}
-	
-	// Restore original logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }

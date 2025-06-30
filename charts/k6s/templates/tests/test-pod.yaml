@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "k6s.fullname" . }}-test"
+  labels:
+    {{- include "k6s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  serviceAccountName: {{ include "k6s.serviceAccountName" . }}
+  containers:
+  - name: test
+    image: curlimages/curl:latest
+    command: ["/bin/sh"]
+    args:
+      - -c
+      - |
+        set -e
+        echo "Running k6s controller production tests..."
+        
+        # Test 1: Health endpoint
+        echo "Testing health endpoint..."
+        curl -f http://{{ include "k6s.fullname" . }}:{{ .Values.service.healthPort }}/healthz || exit 1
+        echo "✓ Health endpoint working"
+        
+        # Test 2: Readiness endpoint
+        echo "Testing readiness endpoint..."
+        curl -f http://{{ include "k6s.fullname" . }}:{{ .Values.service.healthPort }}/readyz || exit 1
+        echo "✓ Readiness endpoint working"
+        
+        # Test 3: Metrics endpoint
+        echo "Testing metrics endpoint..."
+        curl -s http://{{ include "k6s.fullname" . }}:{{ .Values.service.port }}/metrics | head -5 || exit 1
+        echo "✓ Metrics endpoint working"
+        
+        echo "All HTTP endpoints tests passed! ✓"

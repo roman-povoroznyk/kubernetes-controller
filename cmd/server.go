@@ -119,15 +119,15 @@ func setupDeploymentInformer(srv *server.Server) error {
 
 	// Override with command line flags
 	if informerNamespace != "" {
-		cfg.Informer.Namespace = informerNamespace
+		cfg.Controller.Single.Namespace = informerNamespace
 	}
 	if informerResyncTime != "" {
 		if duration, parseErr := time.ParseDuration(informerResyncTime); parseErr == nil {
-			cfg.Informer.ResyncPeriod = duration
+			cfg.Controller.ResyncPeriod = duration
 		} else {
 			logger.Warn("Invalid resync period, using default", map[string]interface{}{
 				"provided": informerResyncTime,
-				"default":  cfg.Informer.ResyncPeriod,
+				"default":  cfg.Controller.ResyncPeriod,
 				"error":    parseErr.Error(),
 			})
 		}
@@ -140,15 +140,15 @@ func setupDeploymentInformer(srv *server.Server) error {
 	}
 
 	// Create informer with config
-	informer := kubernetes.NewDeploymentInformerWithConfig(client.Clientset(), &cfg.Informer)
+	informer := kubernetes.NewDeploymentInformerWithConfig(client.Clientset(), cfg)
 
 	// Set informer in server
 	srv.SetDeploymentInformer(informer)
 
 	// Start informer
 	logger.Info("Starting deployment informer", map[string]interface{}{
-		"namespace":     cfg.Informer.Namespace,
-		"resync_period": cfg.Informer.ResyncPeriod,
+		"namespace":     cfg.Controller.Single.Namespace,
+		"resync_period": cfg.Controller.ResyncPeriod,
 	})
 
 	return informer.Start()

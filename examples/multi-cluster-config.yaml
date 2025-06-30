@@ -1,0 +1,34 @@
+---
+# Multi-cluster configuration example
+default_namespace: "default"
+connection_timeout: "30s"
+max_concurrent_connections: 10
+
+clusters:
+  - name: "production"
+    kubeconfig: "/path/to/production-kubeconfig"
+    context: "production-context"
+    namespace: "production"
+    enabled: true
+    primary: true
+    
+  - name: "staging"
+    kubeconfig: "/path/to/staging-kubeconfig"
+    context: "staging-context"
+    namespace: "staging"
+    enabled: true
+    primary: false
+    
+  - name: "development"
+    kubeconfig: "/path/to/dev-kubeconfig"
+    context: "dev-context"
+    namespace: "development"
+    enabled: true
+    primary: false
+    
+  - name: "local"
+    kubeconfig: ""  # Use default kubeconfig
+    context: "minikube"
+    namespace: "default"
+    enabled: false
+    primary: false

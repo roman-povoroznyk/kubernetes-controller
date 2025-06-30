@@ -1,0 +1,28 @@
+clusters:
+  - name: "minikube-local"
+    kubeconfig: "/Users/rpovoroznyk/.kube/config"
+    context: "minikube"
+    server: ""
+    namespace: "default"
+    enabled: true
+    primary: true
+    
+  - name: "k6s-test"
+    kubeconfig: "/Users/rpovoroznyk/.kube/config"
+    context: "k6s-test"
+    server: ""
+    namespace: "default"
+    enabled: true
+    primary: false
+    
+  - name: "patrianna-dev"
+    kubeconfig: "/Users/rpovoroznyk/.kube/config"
+    context: "gke_patrianna-dev_europe-west1_patrianna-dev-cluster-app-new"
+    server: ""
+    namespace: "default"
+    enabled: false  # Disabled for demo
+    primary: false
+    
+default_namespace: "default"
+connection_timeout: "30s"
+max_concurrent_connections: 10

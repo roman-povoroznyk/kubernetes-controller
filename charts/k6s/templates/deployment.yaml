@@ -41,16 +41,19 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+            - name: health
+              containerPort: {{ .Values.service.healthPort }}
+              protocol: TCP
           livenessProbe:
             httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 10
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /health
-              port: http
+              path: /readyz
+              port: health
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
