@@ -75,7 +75,7 @@ func (s *Server) handleHealth(ctx *fasthttp.RequestCtx) {
 func (s *Server) handleVersion(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("application/json")
 	ctx.SetStatusCode(fasthttp.StatusOK)
-	fmt.Fprintf(ctx, `{"version":"v0.9.0"}`)
+	fmt.Fprintf(ctx, `{"version":"v0.9.1"}`)
 }
 
 // handleNotFound handles 404 responses

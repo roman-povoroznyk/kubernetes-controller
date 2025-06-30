@@ -19,8 +19,18 @@ var (
 
 var controllerCmd = &cobra.Command{
 	Use:   "controller",
-	Short: "Run the deployment controller (logs all deployment events)",
-	Long: `Run a Kubernetes controller that watches Deployment resources and logs
+	Short: "Manage the deployment controller",
+	Long: `Manage a Kubernetes controller that watches Deployment resources and logs
+all events (add, update, delete) with detailed information about changes.
+
+The controller uses controller-runtime and provides structured logging
+for deployment lifecycle events including replicas, images, and labels.`,
+}
+
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start the deployment controller (logs all deployment events)",
+	Long: `Start a Kubernetes controller that watches Deployment resources and logs
 all events (add, update, delete) with detailed information about changes.
 
 The controller uses controller-runtime and provides structured logging
@@ -56,6 +66,7 @@ for deployment lifecycle events including replicas, images, and labels.`,
 
 func init() {
 	rootCmd.AddCommand(controllerCmd)
-	controllerCmd.Flags().IntVar(&metricsPort, "metrics-port", 8080, "Port for metrics endpoint")
-	controllerCmd.Flags().StringVar(&namespace, "namespace", "", "Namespace to watch (empty = all namespaces)")
+	controllerCmd.AddCommand(startCmd)
+	startCmd.Flags().IntVar(&metricsPort, "metrics-port", 8080, "Port for metrics endpoint")
+	startCmd.Flags().StringVar(&namespace, "namespace", "", "Namespace to watch (empty = all namespaces)")
 }

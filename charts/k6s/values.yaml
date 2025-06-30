@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/roman-povoroznyk/k6s
   pullPolicy: IfNotPresent
-  tag: "0.9.0"
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
@@ -66,8 +66,9 @@ affinity: {}
 # Application configuration
 app:
   args:
-    - server
-    - --port=8080
+    - controller
+    - start
+    - --metrics-port=8080
     - --log-level=info
 
 # RBAC configuration

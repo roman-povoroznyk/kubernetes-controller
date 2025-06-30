@@ -2,8 +2,8 @@ apiVersion: v2
 name: k6s
 description: A Helm chart for k6s Kubernetes Controller CLI
 type: application
-version: 0.1.4
-appVersion: "v0.9.0"
+version: 0.1.5
+appVersion: "0.9.1"
 keywords:
   - k6s
   - kubernetes
