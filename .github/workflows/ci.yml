@@ -1,0 +1,317 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ 'v*', 'chart-*' ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  GO_VERSION: '1.21'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: k6s
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=10m --out-format=colored-line-number
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: './...'
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  helm:
+    name: Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Lint Helm chart
+        run: helm lint charts/k6s
+
+      - name: Template Helm chart
+        run: helm template k6s charts/k6s
+
+      - name: Package Helm chart
+        run: |
+          # Get version from git tag or generate one
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            CHART_VERSION="${VERSION#v}"  # Remove 'v' prefix for chart version
+          else
+            VERSION=$(git describe --tags --always --dirty)
+            CHART_VERSION="0.0.0-${VERSION}"
+          fi
+          
+          # Update Chart.yaml with correct versions
+          sed -i "s/^version:.*/version: ${CHART_VERSION}/" charts/k6s/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/k6s/Chart.yaml
+          
+          # Package chart
+          helm package charts/k6s -d charts/
+          echo "CHART_VERSION=${CHART_VERSION}" >> $GITHUB_ENV
+          echo "APP_VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Upload Helm chart artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: charts/*.tgz
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint, security, helm]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          VERSION=$(git describe --tags --always --dirty)
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          GO_VERSION=$(go version | cut -d " " -f 3)
+
+          go build -ldflags "-X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.Version=${VERSION} \
+            -X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.BuildTime=${BUILD_TIME} \
+            -X github.com/roman-povoroznyk/kubernetes-controller/k6s/cmd.GoVersion=${GO_VERSION}" \
+            -o bin/k6s .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6s-binary
+          path: bin/k6s
+
+  docker:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [test, lint, security, helm]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (test only)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build, docker, helm]
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/chart-')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Download Helm chart artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-chart
+          path: charts/
+
+      - name: Determine release type and versions
+        id: version
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          if [[ "$TAG_NAME" == chart-* ]]; then
+            # Chart-only release (chart-0.1.0)
+            CHART_VERSION="${TAG_NAME#chart-}"
+            # Find latest app version for appVersion
+            APP_VERSION=$(git describe --tags --match='v*' --exclude='chart-*' --abbrev=0 2>/dev/null || echo "v0.6.1")
+            APP_VERSION="${APP_VERSION#v}"
+            RELEASE_TYPE="chart"
+            echo "Chart-only release: chart=$CHART_VERSION, app=$APP_VERSION"
+          else
+            # App release (v0.6.0)
+            APP_VERSION="${TAG_NAME#v}"
+            CHART_VERSION="$APP_VERSION"
+            RELEASE_TYPE="app"
+            echo "App release: app=$APP_VERSION, chart=$CHART_VERSION"
+          fi
+          
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update Chart versions for release
+        run: |
+          if [[ "${{ steps.version.outputs.release_type }}" == "app" ]]; then
+            # App release: only update appVersion for metadata
+            APP_VERSION="${{ steps.version.outputs.app_version }}"
+            sed -i "s/^appVersion:.*/appVersion: \"${APP_VERSION}\"/" charts/k6s/Chart.yaml
+            echo "Updated appVersion to ${APP_VERSION} for app release"
+          fi
+          
+          # Always re-package chart for any release
+          helm package charts/k6s -d charts/
+
+      - name: Log in to Container Registry (app releases only)
+        if: steps.version.outputs.release_type == 'app'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser (app releases only)
+        if: steps.version.outputs.release_type == 'app'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create chart-only GitHub release
+        if: steps.version.outputs.release_type == 'chart'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Chart Release ${{ steps.version.outputs.chart_version }}"
+          body: |
+            ## Helm Chart Release ${{ steps.version.outputs.chart_version }}
+            
+            This release contains only Helm chart updates.
+            
+            **Chart Version**: ${{ steps.version.outputs.chart_version }}
+            **App Version**: ${{ steps.version.outputs.app_version }}
+            
+            ### Installation
+            ```bash
+            helm repo add k6s https://roman-povoroznyk.github.io/kubernetes-controller
+            helm repo update
+            helm install k6s k6s/k6s --version ${{ steps.version.outputs.chart_version }}
+            ```
+          files: charts/*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Helm chart to GitHub Pages
+        run: |
+          # Create or update gh-pages branch with Helm repository
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone gh-pages branch or create it
+          git checkout --orphan gh-pages || git checkout gh-pages
+          git pull origin gh-pages || true
+
+          # Copy packaged chart
+          cp charts/*.tgz ./ || true
+
+          # Generate or update index
+          helm repo index . --url https://roman-povoroznyk.github.io/kubernetes-controller
+
+          # Commit and push
+          git add .
+          git commit -m "Release Helm chart ${{ github.ref_name }}" || true
+          git push origin gh-pages

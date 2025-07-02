@@ -1,0 +1,18 @@
+apiVersion: v2
+name: k6s
+description: A Helm chart for k6s Kubernetes Controller CLI
+type: application
+version: 0.1.1
+appVersion: "0.6.1"
+keywords:
+  - k6s
+  - kubernetes
+  - controller
+  - cli
+  - deployment
+home: https://github.com/roman-povoroznyk/kubernetes-controller
+sources:
+  - https://github.com/roman-povoroznyk/kubernetes-controller
+maintainers:
+  - name: Roman Povoroznyk
+    email: povoroznyk.roma@gmail.com
