@@ -72,7 +72,7 @@ Examples:
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// If no subcommand is specified, show help
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 
@@ -91,7 +91,7 @@ func init() {
 		fmt.Sprintf("log level (%s)", getValidLogLevels()))
 
 	// Bind flags to viper
-	viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
+	_ = viper.BindPFlag("log-level", rootCmd.PersistentFlags().Lookup("log-level"))
 
 	// Version flags - using SetVersionTemplate for proper Cobra integration
 	rootCmd.SetVersionTemplate("k6s version {{.Version}}\n")
@@ -124,8 +124,9 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		// We'll log this after logger is initialized
+	if err := viper.ReadInConfig(); err != nil {
+		// Config file not found or error reading - this is optional
+		// Continue without error as config file is not required
 	}
 }
 

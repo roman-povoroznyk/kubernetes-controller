@@ -115,11 +115,8 @@ func (c *MemoryCache) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 	
-	for {
-		select {
-		case <-ticker.C:
-			c.removeExpired()
-		}
+	for range ticker.C {
+		c.removeExpired()
 	}
 }
 

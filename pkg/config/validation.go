@@ -3,7 +3,6 @@ package config
 
 import (
 	"fmt"
-	"net"
 	"regexp"
 	"time"
 
@@ -183,11 +182,9 @@ func (v *ConfigValidator) validatePort(name string, port int) error {
 		return errors.NewValidationError(fmt.Sprintf("%s must be between 1 and 65535, got %d", name, port))
 	}
 	
-	// Check if port is privileged (< 1024) and warn
-	if port < 1024 {
-		// This could be a warning instead of an error
-		// For now, we'll allow it but could add logging
-	}
+	// Check if port is privileged (< 1024) - allowing but noting
+	// Privileged ports require special permissions but are valid
+	_ = port // Use port to avoid unused variable warning
 	
 	return nil
 }
@@ -210,16 +207,6 @@ func (v *ConfigValidator) isValidKubernetesName(name string) bool {
 	pattern := `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 	matched, _ := regexp.MatchString(pattern, name)
 	return matched && len(name) <= 253
-}
-
-// isValidIP checks if a string is a valid IP address
-func (v *ConfigValidator) isValidIP(ip string) bool {
-	return net.ParseIP(ip) != nil
-}
-
-// isValidPort checks if a port number is valid
-func (v *ConfigValidator) isValidPort(port int) bool {
-	return port >= 1 && port <= 65535
 }
 
 // ValidateAndReport validates configuration and returns detailed error report

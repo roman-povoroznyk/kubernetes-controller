@@ -3,7 +3,9 @@ package controller
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,8 +20,11 @@ func TestDeploymentReconciler_Reconcile(t *testing.T) {
 	_ = appsv1.AddToScheme(scheme)
 
 	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+	
+	// Initialize logger for testing - use logr.Discard()
 	reconciler := &DeploymentReconciler{
 		Client: c,
+		Log:    logr.Discard(),
 		Scheme: scheme,
 	}
 	
@@ -94,7 +99,13 @@ func TestDeploymentReconciler_EventTypes(t *testing.T) {
 	
 	// Test add event detection
 	addDeploy := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Generation: 1},
+		ObjectMeta: metav1.ObjectMeta{
+			Generation: 1,
+			CreationTimestamp: metav1.Time{Time: time.Now()},
+		},
+		Status: appsv1.DeploymentStatus{
+			ObservedGeneration: 1,
+		},
 	}
 	if reconciler.determineEventType(addDeploy) != "add" {
 		t.Errorf("expected add event, got %s", reconciler.determineEventType(addDeploy))
@@ -102,7 +113,13 @@ func TestDeploymentReconciler_EventTypes(t *testing.T) {
 	
 	// Test update event detection
 	updateDeploy := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Generation: 2},
+		ObjectMeta: metav1.ObjectMeta{
+			Generation: 2,
+			CreationTimestamp: metav1.Time{Time: time.Now().Add(-time.Minute)},
+		},
+		Status: appsv1.DeploymentStatus{
+			ObservedGeneration: 2,
+		},
 	}
 	if reconciler.determineEventType(updateDeploy) != "update" {
 		t.Errorf("expected update event, got %s", reconciler.determineEventType(updateDeploy))
@@ -110,7 +127,13 @@ func TestDeploymentReconciler_EventTypes(t *testing.T) {
 	
 	// Test sync event detection
 	syncDeploy := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Generation: 0},
+		ObjectMeta: metav1.ObjectMeta{
+			Generation: 1,
+			CreationTimestamp: metav1.Time{Time: time.Now().Add(-time.Minute)},
+		},
+		Status: appsv1.DeploymentStatus{
+			ObservedGeneration: 1,
+		},
 	}
 	if reconciler.determineEventType(syncDeploy) != "sync" {
 		t.Errorf("expected sync event, got %s", reconciler.determineEventType(syncDeploy))

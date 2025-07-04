@@ -113,10 +113,8 @@ func (l *Logger) GetLogr() logr.Logger {
 // Debug logs a debug message with optional fields
 func (l *Logger) Debug(msg string, fields map[string]interface{}) {
 	event := l.logger.Debug()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -124,10 +122,8 @@ func (l *Logger) Debug(msg string, fields map[string]interface{}) {
 // Info logs an info message with optional fields
 func (l *Logger) Info(msg string, fields map[string]interface{}) {
 	event := l.logger.Info()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -135,10 +131,8 @@ func (l *Logger) Info(msg string, fields map[string]interface{}) {
 // Warn logs a warning message with optional fields
 func (l *Logger) Warn(msg string, fields map[string]interface{}) {
 	event := l.logger.Warn()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -149,10 +143,8 @@ func (l *Logger) Error(msg string, err error, fields map[string]interface{}) {
 	if err != nil {
 		event = event.Err(err)
 	}
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }

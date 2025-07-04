@@ -96,7 +96,7 @@ func init() {
 
 	// Controller mode flags
 	startCmd.Flags().StringVar(&controllerMode, "mode", "single", "controller mode (single, multi)")
-	viper.BindPFlag("controller.mode", startCmd.Flags().Lookup("mode"))
+	_ = viper.BindPFlag("controller.mode", startCmd.Flags().Lookup("mode"))
 
 	// Single cluster flags
 	startCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "namespace to watch (empty = all namespaces)")
@@ -115,16 +115,16 @@ func init() {
 	startCmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use in-cluster configuration")
 
 	// Bind flags to viper
-	viper.BindPFlag("controller.single.namespace", startCmd.Flags().Lookup("namespace"))
-	viper.BindPFlag("controller.single.metrics_port", startCmd.Flags().Lookup("metrics-port"))
-	viper.BindPFlag("controller.single.health_port", startCmd.Flags().Lookup("health-port"))
-	viper.BindPFlag("controller.single.leader_election.enabled", startCmd.Flags().Lookup("enable-leader-election"))
-	viper.BindPFlag("controller.single.leader_election.id", startCmd.Flags().Lookup("leader-election-id"))
-	viper.BindPFlag("controller.single.leader_election.namespace", startCmd.Flags().Lookup("leader-election-namespace"))
-	viper.BindPFlag("controller.config_file", startCmd.Flags().Lookup("config-file"))
-	viper.BindPFlag("controller.resync_period", startCmd.Flags().Lookup("resync-period"))
-	viper.BindPFlag("kubeconfig", startCmd.Flags().Lookup("kubeconfig"))
-	viper.BindPFlag("in-cluster", startCmd.Flags().Lookup("in-cluster"))
+	_ = viper.BindPFlag("controller.single.namespace", startCmd.Flags().Lookup("namespace"))
+	_ = viper.BindPFlag("controller.single.metrics_port", startCmd.Flags().Lookup("metrics-port"))
+	_ = viper.BindPFlag("controller.single.health_port", startCmd.Flags().Lookup("health-port"))
+	_ = viper.BindPFlag("controller.single.leader_election.enabled", startCmd.Flags().Lookup("enable-leader-election"))
+	_ = viper.BindPFlag("controller.single.leader_election.id", startCmd.Flags().Lookup("leader-election-id"))
+	_ = viper.BindPFlag("controller.single.leader_election.namespace", startCmd.Flags().Lookup("leader-election-namespace"))
+	_ = viper.BindPFlag("controller.config_file", startCmd.Flags().Lookup("config-file"))
+	_ = viper.BindPFlag("controller.resync_period", startCmd.Flags().Lookup("resync-period"))
+	_ = viper.BindPFlag("kubeconfig", startCmd.Flags().Lookup("kubeconfig"))
+	_ = viper.BindPFlag("in-cluster", startCmd.Flags().Lookup("in-cluster"))
 }
 
 func runController(cmd *cobra.Command, args []string) error {

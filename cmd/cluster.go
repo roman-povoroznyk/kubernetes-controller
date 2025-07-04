@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ Kubernetes clusters with the k6s controller.
 The cluster configuration is stored in a unified YAML file that contains
 all cluster definitions, connection settings, and operational parameters.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 
@@ -457,35 +456,6 @@ func testClusterConnectivity(kubeconfigPath, contextName string) error {
 
 	// Set a reasonable timeout
 	config.Timeout = 5 * time.Second
-
-	// Create discovery client to test connection
-	discoveryClient, err := clientcmd.NewClientConfigFromBytes(nil)
-	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
-	}
-
-	// Use a simple context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Try to get server version as a simple connectivity test
-	restConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
-		&clientcmd.ConfigOverrides{CurrentContext: contextName}).ClientConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Create a discovery client
-	discoveryClient, err = clientcmd.NewClientConfigFromBytes(nil)
-	if err != nil {
-		return fmt.Errorf("failed to create discovery client: %w", err)
-	}
-
-	// This is a simple way to test connectivity without complex setup
-	_ = ctx
-	_ = restConfig
-	_ = discoveryClient
 
 	return nil
 }

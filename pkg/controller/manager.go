@@ -40,7 +40,9 @@ func NewManager(cfg *config.Config, mode string) (*Manager, error) {
 	// Add default cluster if none configured
 	if len(cfg.MultiCluster.Clusters) == 0 {
 		defaultCluster := cluster.NewClusterConfig("default")
-		clusterRegistry.AddCluster("default", defaultCluster)
+		if err := clusterRegistry.AddCluster("default", defaultCluster); err != nil {
+			return nil, fmt.Errorf("failed to add default cluster: %w", err)
+		}
 	} else {
 		// Add configured clusters
 		for _, clusterConfig := range cfg.MultiCluster.Clusters {
@@ -52,7 +54,9 @@ func NewManager(cfg *config.Config, mode string) (*Manager, error) {
 				Enabled:    clusterConfig.Enabled,
 				Primary:    clusterConfig.Primary,
 			}
-			clusterRegistry.AddCluster(clusterConfig.Name, clusterClient)
+			if err := clusterRegistry.AddCluster(clusterConfig.Name, clusterClient); err != nil {
+				return nil, fmt.Errorf("failed to add cluster %s: %w", clusterConfig.Name, err)
+			}
 		}
 	}
 	

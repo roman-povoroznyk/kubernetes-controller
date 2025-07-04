@@ -143,7 +143,7 @@ func (r *DeploymentReconciler) logDeploymentEvent(log logr.Logger, eventType str
 
 	if deployment == nil {
 		// Deletion event
-		log.Info("Deployment deleted", baseFields)
+		log.Info("Deployment deleted", convertMapToKeyValues(baseFields)...)
 		return
 	}
 
@@ -156,8 +156,10 @@ func (r *DeploymentReconciler) logDeploymentEvent(log logr.Logger, eventType str
 	fields["created"] = deployment.CreationTimestamp.Format(time.RFC3339)
 	
 	// Add spec fields
-	fields["replicas"] = r.getReplicasValue(deployment.Spec.Replicas)
-	fields["selector"] = deployment.Spec.Selector.MatchLabels
+	fields["replicas"] = getReplicasValue(deployment.Spec.Replicas)
+	if deployment.Spec.Selector != nil {
+		fields["selector"] = deployment.Spec.Selector.MatchLabels
+	}
 	fields["strategy"] = deployment.Spec.Strategy.Type
 	
 	// Add container information
@@ -207,20 +209,29 @@ func (r *DeploymentReconciler) logDeploymentEvent(log logr.Logger, eventType str
 	// Log with appropriate level based on event type
 	switch eventType {
 	case "add":
-		log.Info("Deployment created", fields)
+		log.Info("Deployment created", convertMapToKeyValues(fields)...)
 	case "update":
-		log.Info("Deployment updated", fields)
+		log.Info("Deployment updated", convertMapToKeyValues(fields)...)
 	case "delete":
-		log.Info("Deployment deleted", fields)
+		log.Info("Deployment deleted", convertMapToKeyValues(fields)...)
 	case "pending":
-		log.Info("Deployment update pending", fields)
+		log.Info("Deployment update pending", convertMapToKeyValues(fields)...)
 	default:
-		log.V(1).Info("Deployment status sync", fields)
+		log.V(1).Info("Deployment status sync", convertMapToKeyValues(fields)...)
 	}
 }
 
+// convertMapToKeyValues converts a map to key-value pairs for logr.Logger
+func convertMapToKeyValues(m map[string]interface{}) []interface{} {
+	result := make([]interface{}, 0, len(m)*2)
+	for k, v := range m {
+		result = append(result, k, v)
+	}
+	return result
+}
+
 // getReplicasValue safely gets the replicas value
-func (r *DeploymentReconciler) getReplicasValue(replicas *int32) int32 {
+func getReplicasValue(replicas *int32) int32 {
 	if replicas == nil {
 		return 1 // Default replica count
 	}
