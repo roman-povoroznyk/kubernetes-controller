@@ -2,9 +2,9 @@
 replicaCount: 1
 
 image:
-  repository: k6s-controller
+  repository: ghcr.io/roman-povoroznyk/k6s
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "v0.10.1"
 
 imagePullSecrets: []
 nameOverride: ""
