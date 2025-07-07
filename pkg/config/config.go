@@ -11,21 +11,42 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// validateFilePath validates that the file path is safe and doesn't contain directory traversal attempts
+func validateFilePath(path string) error {
+	// Clean the path to resolve any ".." components
+	cleaned := filepath.Clean(path)
+
+	// Check for directory traversal attempts
+	if strings.Contains(cleaned, "..") {
+		return fmt.Errorf("path contains directory traversal sequences")
+	}
+
+	// Ensure the path is absolute or relative to current directory
+	if !filepath.IsAbs(cleaned) {
+		// Allow relative paths but ensure they don't go above current directory
+		if strings.HasPrefix(cleaned, "../") {
+			return fmt.Errorf("path cannot go above current directory")
+		}
+	}
+
+	return nil
+}
+
 // Config represents the application configuration
 type Config struct {
 	// General configuration
 	LogLevel string `yaml:"log_level" json:"log_level"`
-	
+
 	// Controller configuration
 	Controller ControllerConfig `yaml:"controller" json:"controller"`
-	
+
 	// Multi-cluster configuration
 	MultiCluster MultiClusterConfig `yaml:"multi_cluster" json:"multi_cluster"`
-	
+
 	// Legacy fields for backward compatibility
 	Informer *LegacyInformerConfig `yaml:"informer,omitempty" json:"informer,omitempty"`
 	Watch    *LegacyWatchConfig    `yaml:"watch,omitempty" json:"watch,omitempty"`
-	
+
 	// Direct multi-cluster fields (for compatibility with existing files)
 	DefaultNamespace           string          `yaml:"default_namespace,omitempty" json:"default_namespace,omitempty"`
 	ConnectionTimeout          *time.Duration  `yaml:"connection_timeout,omitempty" json:"connection_timeout,omitempty"`
@@ -55,13 +76,13 @@ type LegacyWatchConfig struct {
 type ControllerConfig struct {
 	// Mode can be "single" or "multi"
 	Mode string `yaml:"mode" json:"mode"`
-	
+
 	// Single cluster configuration
 	Single SingleClusterConfig `yaml:"single" json:"single"`
-	
+
 	// Multi-cluster configuration file path
 	ConfigFile string `yaml:"config_file" json:"config_file"`
-	
+
 	// Resync period for informers
 	ResyncPeriod time.Duration `yaml:"resync_period" json:"resync_period"`
 }
@@ -70,13 +91,13 @@ type ControllerConfig struct {
 type SingleClusterConfig struct {
 	// Namespace to watch (empty = all namespaces)
 	Namespace string `yaml:"namespace" json:"namespace"`
-	
+
 	// Metrics configuration
 	MetricsPort int `yaml:"metrics_port" json:"metrics_port"`
-	
+
 	// Health check configuration
 	HealthPort int `yaml:"health_port" json:"health_port"`
-	
+
 	// Leader election configuration
 	LeaderElection LeaderElectionConfig `yaml:"leader_election" json:"leader_election"`
 }
@@ -85,10 +106,10 @@ type SingleClusterConfig struct {
 type LeaderElectionConfig struct {
 	// Enable leader election
 	Enabled bool `yaml:"enabled" json:"enabled"`
-	
+
 	// Leader election ID
 	ID string `yaml:"id" json:"id"`
-	
+
 	// Leader election namespace
 	Namespace string `yaml:"namespace" json:"namespace"`
 }
@@ -97,12 +118,12 @@ type LeaderElectionConfig struct {
 type MultiClusterConfig struct {
 	// Test connectivity when listing clusters
 	TestConnectivity bool `yaml:"test_connectivity" json:"test_connectivity"`
-	
+
 	// Multi-cluster settings
 	DefaultNamespace       string        `yaml:"default_namespace" json:"default_namespace"`
 	ConnectionTimeout      time.Duration `yaml:"connection_timeout" json:"connection_timeout"`
 	MaxConcurrentConns     int           `yaml:"max_concurrent_connections" json:"max_concurrent_connections"`
-	
+
 	// Clusters configuration
 	Clusters []ClusterConfig `yaml:"clusters" json:"clusters"`
 }
@@ -150,7 +171,7 @@ func DefaultConfig() *Config {
 func LoadConfig(configFile string) (*Config, error) {
 	// Start with default config
 	config := DefaultConfig()
-	
+
 	// If no config file specified, try default location
 	if configFile == "" {
 		homeDir, err := os.UserHomeDir()
@@ -159,28 +180,33 @@ func LoadConfig(configFile string) (*Config, error) {
 		}
 		configFile = filepath.Join(homeDir, ".k6s", "k6s.yaml")
 	}
-	
+
 	// Check if file exists
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
 		return config, nil // Return default config if file doesn't exist
 	}
-	
+
+	// Validate file path to prevent directory traversal attacks
+	if err := validateFilePath(configFile); err != nil {
+		return nil, fmt.Errorf("invalid config file path: %v", err)
+	}
+
 	// Read file
-	data, err := os.ReadFile(configFile)
+	data, err := os.ReadFile(configFile) // #nosec G304 - path is validated above
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %v", configFile, err)
 	}
-	
+
 	// Parse YAML
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file %s: %v", configFile, err)
 	}
-	
+
 	// Migrate legacy configuration if needed
 	if err := migrateLegacyConfig(config); err != nil {
 		return nil, fmt.Errorf("failed to migrate legacy config: %v", err)
 	}
-	
+
 	return config, nil
 }
 
@@ -191,45 +217,45 @@ func migrateLegacyConfig(config *Config) error {
 		config.MultiCluster.Clusters = config.Clusters
 		config.Clusters = nil // Clear legacy field
 	}
-	
+
 	if config.DefaultNamespace != "" {
 		config.MultiCluster.DefaultNamespace = config.DefaultNamespace
 		config.DefaultNamespace = "" // Clear legacy field
 	}
-	
+
 	if config.ConnectionTimeout != nil {
 		config.MultiCluster.ConnectionTimeout = *config.ConnectionTimeout
 		config.ConnectionTimeout = nil // Clear legacy field
 	}
-	
+
 	if config.MaxConcurrentConnections != nil {
 		config.MultiCluster.MaxConcurrentConns = *config.MaxConcurrentConnections
 		config.MaxConcurrentConnections = nil // Clear legacy field
 	}
-	
+
 	// Migrate legacy informer config
 	if config.Informer != nil {
 		if config.Informer.Namespace != "" {
 			config.Controller.Single.Namespace = config.Informer.Namespace
 		}
-		
+
 		if config.Informer.ResyncPeriod != "" {
 			if duration, err := time.ParseDuration(config.Informer.ResyncPeriod); err == nil {
 				config.Controller.ResyncPeriod = duration
 			}
 		}
-		
+
 		// Clear legacy field after migration
 		config.Informer = nil
 	}
-	
+
 	// Migrate legacy watch config (store in controller config for future use)
 	if config.Watch != nil {
 		// For now, we'll just clear it since we don't have equivalent fields
 		// This could be extended in the future
 		config.Watch = nil
 	}
-	
+
 	return nil
 }
 
@@ -241,7 +267,7 @@ func migrateLegacyConfig(config *Config) error {
 func ResolveConfig(config *Config, flagValues *FlagValues) *Config {
 	resolved := &Config{}
 	*resolved = *config // Copy config values
-	
+
 	// Override with flag values if provided
 	if flagValues != nil {
 		if flagValues.LogLevel != "" {
@@ -278,7 +304,7 @@ func ResolveConfig(config *Config, flagValues *FlagValues) *Config {
 			resolved.MultiCluster.TestConnectivity = *flagValues.TestConnectivity
 		}
 	}
-	
+
 	// Override with environment variables (highest priority)
 	if envValue := os.Getenv("K6S_LOG_LEVEL"); envValue != "" {
 		resolved.LogLevel = envValue
@@ -323,7 +349,7 @@ func ResolveConfig(config *Config, flagValues *FlagValues) *Config {
 			resolved.MultiCluster.TestConnectivity = testConn
 		}
 	}
-	
+
 	return resolved
 }
 
@@ -357,12 +383,12 @@ func (c *Config) Validate() error {
 	if !valid {
 		return fmt.Errorf("invalid log level: %s (must be one of: %s)", c.LogLevel, strings.Join(validLogLevels, ", "))
 	}
-	
+
 	// Validate controller mode
 	if c.Controller.Mode != "single" && c.Controller.Mode != "multi" {
 		return fmt.Errorf("invalid controller mode: %s (must be 'single' or 'multi')", c.Controller.Mode)
 	}
-	
+
 	// Validate ports
 	if c.Controller.Single.MetricsPort < 1 || c.Controller.Single.MetricsPort > 65535 {
 		return fmt.Errorf("invalid metrics port: %d (must be between 1 and 65535)", c.Controller.Single.MetricsPort)
@@ -370,12 +396,12 @@ func (c *Config) Validate() error {
 	if c.Controller.Single.HealthPort < 1 || c.Controller.Single.HealthPort > 65535 {
 		return fmt.Errorf("invalid health port: %d (must be between 1 and 65535)", c.Controller.Single.HealthPort)
 	}
-	
+
 	// Validate resync period
 	if c.Controller.ResyncPeriod < time.Second {
 		return fmt.Errorf("invalid resync period: %v (must be at least 1 second)", c.Controller.ResyncPeriod)
 	}
-	
+
 	return nil
 }
 
@@ -400,22 +426,22 @@ func SaveConfig(config *Config, configFile string) error {
 	if configFile == "" {
 		configFile = GetDefaultConfigPath()
 	}
-	
+
 	// Ensure config directory exists
 	if err := EnsureConfigDir(configFile); err != nil {
 		return fmt.Errorf("failed to create config directory: %v", err)
 	}
-	
+
 	// Marshal to YAML
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %v", err)
 	}
-	
+
 	// Write to file
 	if err := os.WriteFile(configFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
-	
+
 	return nil
 }

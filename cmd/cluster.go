@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/roman-povoroznyk/kubernetes-controller/k6s/pkg/config"
@@ -12,6 +13,27 @@ import (
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+// validateClusterConfigPath validates that the file path is safe and doesn't contain directory traversal attempts
+func validateClusterConfigPath(path string) error {
+	// Clean the path to resolve any ".." components
+	cleaned := filepath.Clean(path)
+
+	// Check for directory traversal attempts
+	if strings.Contains(cleaned, "..") {
+		return fmt.Errorf("path contains directory traversal sequences")
+	}
+
+	// Ensure the path is absolute or relative to current directory
+	if !filepath.IsAbs(cleaned) {
+		// Allow relative paths but ensure they don't go above current directory
+		if strings.HasPrefix(cleaned, "../") {
+			return fmt.Errorf("path cannot go above current directory")
+		}
+	}
+
+	return nil
+}
 
 // clusterCmd represents the cluster command group
 var clusterCmd = &cobra.Command{
@@ -473,7 +495,7 @@ func loadMultiClusterConfig() (*config.Config, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// Create default config
 		cfg := config.DefaultConfig()
-		
+
 		// Ensure directory exists
 		if err := os.MkdirAll(filepath.Dir(configPath), 0750); err != nil {
 			return nil, fmt.Errorf("failed to create config directory: %w", err)
@@ -482,8 +504,13 @@ func loadMultiClusterConfig() (*config.Config, error) {
 		return cfg, nil
 	}
 
+	// Validate file path to prevent directory traversal attacks
+	if err := validateClusterConfigPath(configPath); err != nil {
+		return nil, fmt.Errorf("invalid config file path: %w", err)
+	}
+
 	// Load existing config
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(configPath) // #nosec G304 - path is validated above
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
