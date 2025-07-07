@@ -127,6 +127,9 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		// Config file not found or error reading - this is optional
 		// Continue without error as config file is not required
+		logger.Debug("Config file not found or error reading", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 }
 

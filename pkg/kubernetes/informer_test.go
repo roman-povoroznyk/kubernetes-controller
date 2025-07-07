@@ -108,6 +108,7 @@ func TestNewDeploymentInformer(t *testing.T) {
 
 			if informer == nil {
 				t.Fatal("expected informer to be created, got nil")
+				return
 			}
 
 			if informer.namespace != tt.expected.namespace {

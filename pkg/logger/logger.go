@@ -155,10 +155,8 @@ func (l *Logger) Fatal(msg string, err error, fields map[string]interface{}) {
 	if err != nil {
 		event = event.Err(err)
 	}
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }
@@ -166,10 +164,8 @@ func (l *Logger) Fatal(msg string, err error, fields map[string]interface{}) {
 // Trace logs a trace message with optional fields
 func (l *Logger) Trace(msg string, fields map[string]interface{}) {
 	event := l.logger.Trace()
-	if fields != nil {
-		for k, v := range fields {
-			event = event.Interface(k, v)
-		}
+	for k, v := range fields {
+		event = event.Interface(k, v)
 	}
 	event.Msg(msg)
 }

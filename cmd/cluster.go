@@ -475,7 +475,7 @@ func loadMultiClusterConfig() (*config.Config, error) {
 		cfg := config.DefaultConfig()
 		
 		// Ensure directory exists
-		if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(configPath), 0750); err != nil {
 			return nil, fmt.Errorf("failed to create config directory: %w", err)
 		}
 
@@ -505,7 +505,7 @@ func saveMultiClusterConfig(cfg *config.Config) error {
 	configPath := filepath.Join(home, ".k6s", "k6s.yaml")
 
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -516,7 +516,7 @@ func saveMultiClusterConfig(cfg *config.Config) error {
 	}
 
 	// Write file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

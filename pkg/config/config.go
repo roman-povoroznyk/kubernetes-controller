@@ -391,7 +391,7 @@ func GetDefaultConfigPath() string {
 // EnsureConfigDir creates the config directory if it doesn't exist
 func EnsureConfigDir(configPath string) error {
 	dir := filepath.Dir(configPath)
-	return os.MkdirAll(dir, 0755)
+	return os.MkdirAll(dir, 0750)
 }
 
 // SaveConfig saves configuration to file
@@ -413,7 +413,7 @@ func SaveConfig(config *Config, configFile string) error {
 	}
 	
 	// Write to file
-	if err := os.WriteFile(configFile, data, 0644); err != nil {
+	if err := os.WriteFile(configFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 	
